@@ -65,9 +65,11 @@ namespace StreamCentral.ADLSIntegration
             return aadTokenCredentials.Token;
         }
 
+        //Create Data Sets and Pipelines - Deploy these in Azure Data Factory for a all structures in the source system.
         public static void DeployADFDataSetsAndPipelines()
         {
-            List<string> tableNames = ADFOperations.ListFilteredTableNames("", "", "");
+
+            List<string> tableNames = ADFOperations.ListFilteredTableNames();
 
             foreach (string tableName in tableNames)
             {
@@ -75,7 +77,21 @@ namespace StreamCentral.ADLSIntegration
             }
         }
 
-        public static void DeployADFDataSetsAndPipelines(string dataSourceName, string tableName, string folderPath, string dateTimeField, string interval)
+
+        //Create Data Sets and Pipelines - Deploy these in Azure Data Factory for a all structures in the source system.
+        public static void DeployADFDataSetsAndPipelines(string [] searchTexts)
+        {
+            List<string> tableNames = ADFOperations.ListFilteredTableNames(searchTexts);
+
+            foreach (string tableName in tableNames)
+            {
+                DeployADFDataSetsAndPipelines(String.Empty, tableName, String.Empty, string.Empty, string.Empty);
+            }
+        }
+
+        //Create Data Sets and Pipelines - Deploy these in Azure Data Factory for a single Structure.
+        public static void DeployADFDataSetsAndPipelines(string dataSourceName, string tableName, 
+            string folderPath, string dateTimeField, string interval)
         {
             //check if there is any data in the source structure.
             DateTime firstDateTimeRecordInTable;
@@ -119,7 +135,8 @@ namespace StreamCentral.ADLSIntegration
             }
         }
 
-        public static void DeployDatasetAndPipelines(string pipelineName, string inDataSetName, string outDataSetName, string tableName, List<DataElement> lstElements, string fileName, string folderpath,
+        public static void DeployDatasetAndPipelines(string pipelineName, string inDataSetName, string outDataSetName, 
+            string tableName, List<DataElement> lstElements, string fileName, string folderpath,
              string sqlQuery, DateTime recorddateUTC, bool IsDataDeploy)
         {
             Dataset dsInput = null, dsOutput = null;
@@ -273,88 +290,86 @@ namespace StreamCentral.ADLSIntegration
 
             if (!isDataDeploy)
             { isFirstRowHeader = true; }
-
-
-
+                        
             client.Datasets.CreateOrUpdate(resourceGroupName, dataFactoryName,
-          new DatasetCreateOrUpdateParameters()
-          {
-              Dataset = new Dataset()
-              {
-                  Name = datasetDestination,
-                  Properties = new DatasetProperties()
-                  {
-
-                      LinkedServiceName = linkedServiceName,
-                      Structure = InputParams,
-
-                      TypeProperties = new AzureDataLakeStoreDataset()
+            new DatasetCreateOrUpdateParameters()
+            {
+                Dataset = new Dataset()
+                {
+                      Name = datasetDestination,
+                      Properties = new DatasetProperties()
                       {
-                          FileName = fileName,
 
-                          FolderPath = folderPath,
+                          LinkedServiceName = linkedServiceName,
+                          Structure = InputParams,
 
-                          Format = new TextFormat()
+                          TypeProperties = new AzureDataLakeStoreDataset()
                           {
-                              RowDelimiter = "\n",
-                              ColumnDelimiter = "~",
-                              NullValue = null,
-                              EncodingName = "utf-8",
-                              SkipLineCount = 0,
-                              FirstRowAsHeader = isFirstRowHeader,
-                              TreatEmptyAsNull = true
+                              FileName = fileName,
+
+                              FolderPath = folderPath,
+
+                              Format = new TextFormat()
+                              {
+                                  RowDelimiter = "\n",
+                                  ColumnDelimiter = "~",
+                                  NullValue = null,
+                                  EncodingName = "utf-8",
+                                  SkipLineCount = 0,
+                                  FirstRowAsHeader = isFirstRowHeader,
+                                  TreatEmptyAsNull = true
+                              },
+
+                              PartitionedBy = new Collection<Partition>()
+                              {
+                                    new Partition()
+                                    {
+                                        Name = "year",
+                                        Value = new DateTimePartitionValue()
+                                        {
+                                            Date = "SliceStart",
+                                            Format  = "yyyy"
+                                        }
+                                    },
+                                    new Partition()
+                                    {
+                                        Name = "month",
+                                        Value = new DateTimePartitionValue()
+                                        {
+                                            Date = "SliceStart",
+                                            Format  = "MM"
+                                        }
+                                    },
+                                    new Partition()
+                                    {
+                                        Name = "day",
+                                        Value = new DateTimePartitionValue()
+                                        {
+                                            Date = "SliceStart",
+                                            Format  = "dd"
+                                        }
+                                    }
+                              },
                           },
 
-                          PartitionedBy = new Collection<Partition>()
+                          Availability = new Availability()
                           {
-                                new Partition()
-                                {
-                                    Name = "year",
-                                    Value = new DateTimePartitionValue()
-                                    {
-                                        Date = "SliceStart",
-                                        Format  = "yyyy"
-                                    }
-                                },
-                                new Partition()
-                                {
-                                    Name = "month",
-                                    Value = new DateTimePartitionValue()
-                                    {
-                                        Date = "SliceStart",
-                                        Format  = "MM"
-                                    }
-                                },
-                                new Partition()
-                                {
-                                    Name = "day",
-                                    Value = new DateTimePartitionValue()
-                                    {
-                                        Date = "SliceStart",
-                                        Format  = "dd"
-                                    }
-                                }
+                              Frequency = SchedulePeriod.Day,
+                              Interval = 1,
                           },
-                      },
 
-                      Availability = new Availability()
-                      {
-                          Frequency = SchedulePeriod.Day,
-                          Interval = 1,
-                      },
+                          External = false,
 
-                      External = false,
-
-                      Policy = new Policy()
-                      {
-                          Validation = new ValidationPolicy()
+                          Policy = new Policy()
                           {
-                              MinimumRows = 2
+                              Validation = new ValidationPolicy()
+                              {
+                                  MinimumRows = 2
+                              }
                           }
                       }
                   }
-              }
-          });
+            });
         }
 
         public static bool DeleteDatasets(string startWithSearchText)
@@ -494,14 +509,11 @@ namespace StreamCentral.ADLSIntegration
 
             try
             {
-
                 PipelineGetResponse respPipelines = client.Pipelines.Get(resourceGroupName, dataFactoryName, pipelineName);
                 pl = respPipelines.Pipeline;
 
                 Console.WriteLine("updating existing pipeline " + pipelineName + " ... " + activityInPipeline.Name);
-                //PipelineActivePeriodStartTime = (DateTime) pl.Properties.Start;
-                //PipelineActivePeriodEndTime = (DateTime)pl.Properties.End;
-
+                
                 pl.Properties.Activities.Add(activityInPipeline);
 
                 PipelineCreateOrUpdateParameters plParameters = new PipelineCreateOrUpdateParameters() { Pipeline = pl };
@@ -549,8 +561,7 @@ namespace StreamCentral.ADLSIntegration
                 Console.WriteLine("created new pipeline " + pipelineName + " ... " + activityInPipeline.Name);
             }
         }
-
-
+        
         public static List<DataElement> GenerateStructure(string tableName)
         {
             List<DataElement> InOutParams = new List<DataElement>();
@@ -597,7 +608,7 @@ namespace StreamCentral.ADLSIntegration
                                     break;
                                 case "datetime":
                                     type = "DateTime";
-                                    break;
+                                    break;                                
                             }
 
                             InOutParams.Add(new DataElement
@@ -607,11 +618,9 @@ namespace StreamCentral.ADLSIntegration
                             });
                         }
                     }
-
                     reader.Close();
                 }
             }
-
             return InOutParams;
         }
 
@@ -640,11 +649,30 @@ namespace StreamCentral.ADLSIntegration
             return sqlQuery;
         }
 
-        public static List<string> ListFilteredTableNames(string searchText01, string searchText02, string searchText03)
+        public static List<string> ListFilteredTableNames()
+        {
+            String[] searchTexts = new String[2];
+            return ListFilteredTableNames(searchTexts);
+        }
+
+        public static List<string> ListFilteredTableNames(String [] searchTexts)
         {
             List<string> tableNames = new List<string>();
 
+            string searchText01 = String.Empty; string searchText02 = String.Empty; string searchText03 = String.Empty;
+
             SqlConnection connect = SQLUtils.SQLConnect();
+
+            try
+            {
+                searchText01 = searchTexts[0];
+                searchText02 = searchTexts[1];
+                searchText03 = searchTexts[2];
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Seems like not all search parameters are passed: {0}", ex.Message);
+            }
 
             SqlCommand cmd = SQLUtils.GenerateStoredProcCommand("SCDMListTablesProc", searchText01, searchText02, searchText03);
 
@@ -707,6 +735,7 @@ namespace StreamCentral.ADLSIntegration
             }
             catch (Exception ex)
             {
+                Console.WriteLine("Unable to execute the sql command: {0}, Exception occured: {1}", cmd.CommandText, ex.Message);
             }
 
             return firstDateTime;

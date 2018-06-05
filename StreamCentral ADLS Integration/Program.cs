@@ -8,62 +8,74 @@ namespace StreamCentral.ADLSIntegration
 {
     class Program
     {
-        private static string dataSourceName = String.Empty;
+        private static string _dataSourceName = String.Empty;
 
-        private static string tableName = String.Empty;
+        private static string _tableName = String.Empty;
 
-        private static string folderPath = String.Empty;
+        private static string _folderPath = String.Empty;
 
-        private static string filterDateTimeField = String.Empty;
+        private static string _filterDateTimeField = String.Empty;
 
-        private static string filterDateTimeInterval = String.Empty;
+        private static string _filterDateTimeInterval = String.Empty;
 
         static void Main(string[] args)
         {
             try
             {
-                try
-                {
-                    String[] arguments = Environment.GetCommandLineArgs();
-
-                    if (!System.String.IsNullOrEmpty(arguments[1]))
-                    {
-                        dataSourceName = arguments[0].ToString();
-                        Console.WriteLine(dataSourceName);
-                    }
-
-                    if (!System.String.IsNullOrEmpty(arguments[2]))
-                    {
-                        tableName = arguments[1].ToString();
-                        Console.WriteLine(tableName);
-                    }
-                    if (!System.String.IsNullOrEmpty(arguments[3]))
-                    {
-                        folderPath = arguments[2].ToString();
-                        Console.WriteLine(folderPath);
-                    }
-                    if (!System.String.IsNullOrEmpty(arguments[4]))
-                    {
-                        filterDateTimeField = arguments[3].ToString();
-                        Console.WriteLine(filterDateTimeField);
-                    }
-                    if (!System.String.IsNullOrEmpty(arguments[5]))
-                    {
-                        filterDateTimeInterval = arguments[5].ToString();
-                        Console.WriteLine(filterDateTimeInterval);
-                    }
-                }
-                catch(IndexOutOfRangeException ex)
-                {
-                    Console.WriteLine("Few arguments are not provided : {0}", ex.Message);
-                    Console.ReadLine();
-                }
-
-                 ADFOperations.DeployADFDataSetsAndPipelines();
+                //Call Method: Create Data Sets, Pipelines for all structures qualified for criteria.
+                ADFOperations.DeployADFDataSetsAndPipelines(_dataSourceName,
+                    _tableName, _folderPath, _filterDateTimeField, _filterDateTimeInterval);
             }
             catch(Exception ex)
             {
                 Console.WriteLine("Some exception occured: {0}", ex.Message);
+                Console.ReadLine();
+            }
+        }
+
+        static void LoadCommandLineArgs(String[] args)
+        {
+            try
+            {
+                String[] listArguments = args;
+
+                try
+                {
+                    if (!System.String.IsNullOrEmpty(listArguments[1]))
+                    {
+                        _dataSourceName = listArguments[1].ToString();
+                        Console.WriteLine(_dataSourceName);
+                    }
+                }catch(IndexOutOfRangeException ex)
+                {
+                    Console.WriteLine("Please provide the command line arguments to proceed: dataSourceName, tableName, folderPath, filterDateTimeField, filterDateTimeInterval");                    
+                }
+
+                if (!System.String.IsNullOrEmpty(listArguments[2]))
+                {
+                    _tableName = listArguments[2].ToString();
+                    Console.WriteLine(_tableName);
+                }
+                
+                if (!System.String.IsNullOrEmpty(listArguments[3]))
+                {
+                    _folderPath = listArguments[3].ToString();
+                    Console.WriteLine(_folderPath);
+                }
+                if (!System.String.IsNullOrEmpty(listArguments[4]))
+                {
+                    _filterDateTimeField = listArguments[4].ToString();
+                    Console.WriteLine(_filterDateTimeField);
+                }
+                if (!System.String.IsNullOrEmpty(listArguments[5]))
+                {
+                    _filterDateTimeInterval = listArguments[5].ToString();
+                    Console.WriteLine(_filterDateTimeInterval);
+                }
+            }
+            catch (IndexOutOfRangeException ex)
+            {
+                Console.WriteLine("Few arguments are not provided : {0}", ex.Message);
                 Console.ReadLine();
             }
         }

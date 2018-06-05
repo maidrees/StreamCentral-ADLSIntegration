@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 
 using Microsoft.Rest;
-using Microsoft.Rest.Azure.Authentication;
+//using Microsoft.Rest.Azure.Authentication;
 using Microsoft.Azure.DataLake.Store;
 using Microsoft.IdentityModel.Clients.ActiveDirectory;
 
@@ -24,10 +24,10 @@ namespace StreamCentral.ADLSIntegration
 
         static ADLSFileOperations()
         {
-            var creds = new ClientCredential(ConfigurationSettings.AppSettings["ApplicationId"], ConfigurationSettings.AppSettings["Password"]);
-            ServiceClientCredentials clientCreds2 = ApplicationTokenProvider.LoginSilentAsync(ConfigurationSettings.AppSettings["ActiveDirectoryTenantId"], creds).GetAwaiter().GetResult();
+            //var creds = new ClientCredential(ConfigurationSettings.AppSettings["ApplicationId"], ConfigurationSettings.AppSettings["Password"]);
+            //ServiceClientCredentials clientCreds2 = ApplicationTokenProvider.LoginSilentAsync(ConfigurationSettings.AppSettings["ActiveDirectoryTenantId"], creds).GetAwaiter().GetResult();
 
-            client = AdlsClient.CreateClient(_adlsName, clientCreds2);
+           // client = AdlsClient.CreateClient(_adlsName, clientCreds2);
         }
         public static void DeleteEmptyFilesInFolder(string folderName)
         {
