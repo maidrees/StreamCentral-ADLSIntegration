@@ -38,10 +38,9 @@ namespace StreamCentral.ADLSIntegration
         public static string folderPath = ConfigurationSettings.AppSettings["folderPath"];
 
         public static string dataSourceType = string.Empty;
-
-
-
+        
         public static DataFactoryManagementClient client;
+
         static ADFOperations()
         {
             //IMPORTANT: generate security token for the subsciption and AAD App
