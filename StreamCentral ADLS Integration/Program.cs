@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace StreamCentral_ADLS_Integration
+namespace StreamCentral.ADLSIntegration
 {
     class Program
     {
