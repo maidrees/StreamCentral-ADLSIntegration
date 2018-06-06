@@ -18,13 +18,28 @@ namespace StreamCentral.ADLSIntegration
 
         private static string _filterDateTimeInterval = String.Empty;
 
+        private static string _deployCriteria = String.Empty;
+
         static void Main(string[] args)
         {
             try
             {
+                LoadCommandLineArgs(args);
                 //Call Method: Create Data Sets, Pipelines for all structures qualified for criteria.
+
+                if(_deployCriteria.Equals("search"))
+                {
+                    string[] searchText = new string[1];
+
+                    searchText[0] = _dataSourceName;
+
+                    ADFOperations.DeployADFDataSetsAndPipelines(searchText);
+                }
                 ADFOperations.DeployADFDataSetsAndPipelines(_dataSourceName,
                     _tableName, _folderPath, _filterDateTimeField, _filterDateTimeInterval);
+
+                Console.WriteLine("Completed the process of deploying ADF in azure");
+                Console.ReadLine();
             }
             catch(Exception ex)
             {
@@ -38,6 +53,20 @@ namespace StreamCentral.ADLSIntegration
             try
             {
                 String[] listArguments = args;
+
+                try
+                {
+                    if (!System.String.IsNullOrEmpty(listArguments[0]))
+                    {
+                        _deployCriteria = listArguments[0].ToString();
+                        Console.WriteLine(_deployCriteria);
+                    }
+                }
+                catch (IndexOutOfRangeException ex)
+                {
+                    Console.WriteLine("Please provide the command line arguments to proceed: deployCriteria,dataSourceName, tableName, folderPath, filterDateTimeField, filterDateTimeInterval");
+                }
+
 
                 try
                 {
@@ -75,8 +104,7 @@ namespace StreamCentral.ADLSIntegration
             }
             catch (IndexOutOfRangeException ex)
             {
-                Console.WriteLine("Few arguments are not provided : {0}", ex.Message);
-                Console.ReadLine();
+                Console.WriteLine("Few arguments are not provided : {0}", ex.Message);                
             }
         }
     }

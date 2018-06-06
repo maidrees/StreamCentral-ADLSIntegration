@@ -96,6 +96,12 @@ namespace StreamCentral.ADLSIntegration
             //check if there is any data in the source structure.
             DateTime firstDateTimeRecordInTable;
 
+            if(System.String.IsNullOrEmpty(tableName))
+            {
+                Console.WriteLine("source structure(SC table name) cannot be empty. Execution does not proceed further");
+                return;
+            }
+
             //List the attribute, data type of each column
             List<DataElement> lstElements = ADFOperations.GenerateStructure(tableName);
 
@@ -104,9 +110,11 @@ namespace StreamCentral.ADLSIntegration
                 dataSourceType = Utils.GetdataSourceType(tableName);
             }
 
+            dateTimeField = (String.IsNullOrEmpty(dateTimeField) ? "recorddateutc" : dateTimeField);
+
             firstDateTimeRecordInTable = ADFOperations.FetchFirstRowRecordDate(tableName, dateTimeField);
 
-            if (firstDateTimeRecordInTable != DateTime.Now)
+            if (firstDateTimeRecordInTable <= DateTime.Now.Subtract(TimeSpan.FromHours(1)))
             {
                 //Prepare the SQL query required for pipeline to execute on Source System
                 string sqlQuery = ADFOperations.GenerateADFPipelineSQLQuery(tableName, lstElements, dateTimeField, false);
@@ -114,7 +122,7 @@ namespace StreamCentral.ADLSIntegration
                 string inDataSetName = "AT01_DSInput_" + tableName + "_Header_V230518";
                 string outDataSetName = "AT01_DSOutput_" + tableName + "_Header_V230518";
                 string pipelineName = "SC01_Pipeline_Staging-Header" + dataSourceType;
-                string fileName = "Header_" + tableName;
+                string fileName = "Header_" + tableName.ToLower().Replace("data_dact", "").Replace("metricdetails", "");
                 string folderpath = folderPath + "/DL-" + dataSourceType + "/" + tableName;
 
                 DeployDatasetAndPipelines(pipelineName, inDataSetName, outDataSetName, tableName, lstElements, fileName, folderpath, sqlQuery, firstDateTimeRecordInTable, false);
@@ -125,7 +133,7 @@ namespace StreamCentral.ADLSIntegration
                 inDataSetName = "AT01_DSInput_" + tableName + "_Data_V230518";
                 outDataSetName = "AT01_DSOutput_" + tableName + "_Data_V230518";
                 pipelineName = "SC01_Pipeline_Staging-Data" + dataSourceType;
-                fileName = "Data_" + tableName + "-{year}-{month}-{day}";
+                fileName = "Data_" + tableName.ToLower().Replace("data_dact","").Replace("metricdetails","") + "-{year}-{month}-{day}";
 
                 DeployDatasetAndPipelines(pipelineName, inDataSetName, outDataSetName, tableName, lstElements, fileName, folderpath, sqlQuery, firstDateTimeRecordInTable, true);
             }
@@ -569,7 +577,10 @@ namespace StreamCentral.ADLSIntegration
             //// Look for the name in the connectionStrings section.
             SqlConnection connect = SQLUtils.SQLConnect();
 
-            SqlCommand cmd = SQLUtils.GenerateStoredProcCommand("SCDMTableSchemaProc", tableName);
+            // SqlCommand cmd = SQLUtils.GenerateStoredProcCommand("SCDMTableSchemaProc", tableName);
+            SqlCommand cmd = new SqlCommand(ConfigurationSettings.AppSettings["SCDMTableSchemaProc"], connect);
+            cmd.CommandType = CommandType.StoredProcedure;
+            cmd.Parameters.Add(new SqlParameter("@TableName", tableName));
 
             if (connect.State == ConnectionState.Closed)
             {
@@ -619,6 +630,7 @@ namespace StreamCentral.ADLSIntegration
                         }
                     }
                     reader.Close();
+                    connect.Close();
                 }
             }
             return InOutParams;
@@ -643,8 +655,10 @@ namespace StreamCentral.ADLSIntegration
 
             }
 
-            sqlQuery = string.Format("{0} from {1} where [{2} >= \\'{0:yyyy-MM-dd HH:mm}\\ AND  AND [{2}] < \\'{1:yyyy-MM-dd HH:mm}\\'', " +
-                "WindowStart, WindowEnd)", sqlQuery, tableName, dateField);
+
+            sqlQuery = sqlQuery +  " from " + tableName + " where ["+ dateField +"] >= \\'{0:yyyy-MM-dd HH:mm}\\' AND  " +
+                " ["+ dateField + "] < \\'{1:yyyy-MM-dd HH:mm}\\'', " +
+                "WindowStart, WindowEnd)";
 
             return sqlQuery;
         }
@@ -703,7 +717,7 @@ namespace StreamCentral.ADLSIntegration
 
             if (!System.String.IsNullOrEmpty(dateField))
             {
-                sqlQuery = String.Format("SELECT TOP 1 {0} FROM {1} ORDER BY {0} ASC", dateField, tableName);
+                sqlQuery = String.Format("SELECT TOP 1 {0} FROM {1} ORDER BY {2} ASC", dateField, tableName, dateField);
             }
             else
             {
@@ -727,7 +741,7 @@ namespace StreamCentral.ADLSIntegration
                     {
                         while (reader.Read())
                         {
-                            firstDateTime = reader.GetDateTime(0);
+                            firstDateTime = reader.GetDateTime(0).Date.Subtract(TimeSpan.FromDays(1));
                         }
                         reader.Close();
                     }
