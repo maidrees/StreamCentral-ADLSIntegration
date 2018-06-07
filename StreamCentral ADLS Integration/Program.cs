@@ -35,8 +35,30 @@ namespace StreamCentral.ADLSIntegration
 
                     ADFOperations.DeployADFDataSetsAndPipelines(searchText);
                 }
+
                 ADFOperations.DeployADFDataSetsAndPipelines(_dataSourceName,
-                    _tableName, _folderPath, _filterDateTimeField, _filterDateTimeInterval);
+                    _tableName, _folderPath, _filterDateTimeField, _filterDateTimeInterval, CopyDataType.All);
+
+                ADFOperations.DeployADFDataSetsAndPipelines(_dataSourceName,
+    _tableName, _folderPath, _filterDateTimeField, _filterDateTimeInterval, CopyDataType.Transactional);
+
+                //                ADFOperations.DeployADFDataSetsAndPipelines(_dataSourceName,
+                //_tableName, _folderPath, _filterDateTimeField, _filterDateTimeInterval, CopyDataType.Distinct,"sys_id");
+
+
+                //Console.WriteLine("Delete status of Input Data sets: Start ");
+
+                //ADFOperations.DeleteDatasets("SC_DSI");
+
+                //Console.WriteLine("Delete status of Input Data sets : Success");
+
+
+                //Console.WriteLine("Delete status of Output Data sets: Start ");
+
+                //ADFOperations.DeleteDatasets("SC_DSO");
+
+                //Console.WriteLine("Delete status of Output Data sets : Success");
+
 
                 Console.WriteLine("Completed the process of deploying ADF in azure");
                 Console.ReadLine();

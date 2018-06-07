@@ -73,7 +73,9 @@ namespace StreamCentral.ADLSIntegration
 
             foreach (string tableName in tableNames)
             {
-                DeployADFDataSetsAndPipelines(String.Empty, tableName, String.Empty, string.Empty, string.Empty);
+                DeployADFDataSetsAndPipelines(String.Empty, tableName, String.Empty, string.Empty, string.Empty,CopyDataType.All);
+
+                DeployADFDataSetsAndPipelines(String.Empty, tableName, String.Empty, string.Empty, string.Empty, CopyDataType.Transactional);
             }
         }
 
@@ -85,13 +87,15 @@ namespace StreamCentral.ADLSIntegration
 
             foreach (string tableName in tableNames)
             {
-                DeployADFDataSetsAndPipelines(String.Empty, tableName, String.Empty, string.Empty, string.Empty);
+                DeployADFDataSetsAndPipelines(String.Empty, tableName, String.Empty, string.Empty, string.Empty, CopyDataType.All);
+
+                DeployADFDataSetsAndPipelines(String.Empty, tableName, String.Empty, string.Empty, string.Empty, CopyDataType.Transactional);
             }
         }
 
         //Create Data Sets and Pipelines - Deploy these in Azure Data Factory for a single Structure.
         public static void DeployADFDataSetsAndPipelines(string dataSourceName, string tableName, 
-            string folderPath, string dateTimeField, string interval)
+            string folderPath, string dateTimeField, string interval, CopyDataType cpType)
         {
             //check if there is any data in the source structure.
             DateTime firstDateTimeRecordInTable;
@@ -105,37 +109,57 @@ namespace StreamCentral.ADLSIntegration
             //List the attribute, data type of each column
             List<DataElement> lstElements = ADFOperations.GenerateStructure(tableName);
 
-            if (System.String.IsNullOrEmpty(dataSourceName))
-            {
+            //if (System.String.IsNullOrEmpty(dataSourceName))
+            //{
                 dataSourceType = Utils.GetdataSourceType(tableName);
-            }
+            //}
 
             dateTimeField = (String.IsNullOrEmpty(dateTimeField) ? "recorddateutc" : dateTimeField);
+            folderPath = (String.IsNullOrEmpty(folderPath) ? ConfigurationSettings.AppSettings["folderPath"] : folderPath);
+            
 
             firstDateTimeRecordInTable = ADFOperations.FetchFirstRowRecordDate(tableName, dateTimeField);
 
             if (firstDateTimeRecordInTable <= DateTime.Now.Subtract(TimeSpan.FromHours(1)))
             {
-                //Prepare the SQL query required for pipeline to execute on Source System
-                string sqlQuery = ADFOperations.GenerateADFPipelineSQLQuery(tableName, lstElements, dateTimeField, false);
+                //re: INPUT DATASET - Prepare the SQL query required for pipeline to execute on Source System
 
-                string inDataSetName = "AT01_DSInput_" + tableName + "_Header_V230518";
-                string outDataSetName = "AT01_DSOutput_" + tableName + "_Header_V230518";
-                string pipelineName = "SC01_Pipeline_Staging-Header" + dataSourceType;
-                string fileName = "Header_" + tableName.ToLower().Replace("data_dact", "").Replace("metricdetails", "");
-                string folderpath = folderPath + "/DL-" + dataSourceType + "/" + tableName;
+                string sqlQuery = ADFOperations.GenerateADFPipelineSQLQuery(tableName, lstElements, dateTimeField, false, cpType);
 
-                DeployDatasetAndPipelines(pipelineName, inDataSetName, outDataSetName, tableName, lstElements, fileName, folderpath, sqlQuery, firstDateTimeRecordInTable, false);
+                string InOutDataSetNameRef = tableName.Replace("[", String.Empty).Replace("]", String.Empty).
+                    Replace("FACT_", String.Empty).Replace("metricdetails", String.Empty) + "_" + cpType.ToString();
+                  //  "_" + DateTime.Now.Year.ToString() + DateTime.Now.Month.ToString() + DateTime.Now.Day.ToString(); ;
 
-                //Prepare the SQL query required for pipeline to execute on Source System
-                sqlQuery = ADFOperations.GenerateADFPipelineSQLQuery(tableName, lstElements, dateTimeField, true);
 
-                inDataSetName = "AT01_DSInput_" + tableName + "_Data_V230518";
-                outDataSetName = "AT01_DSOutput_" + tableName + "_Data_V230518";
-                pipelineName = "SC01_Pipeline_Staging-Data" + dataSourceType;
-                fileName = "Data_" + tableName.ToLower().Replace("data_dact","").Replace("metricdetails","") + "-{year}-{month}-{day}";
+                Console.WriteLine("Deploying data sets and pipelines for Headers");
 
-                DeployDatasetAndPipelines(pipelineName, inDataSetName, outDataSetName, tableName, lstElements, fileName, folderpath, sqlQuery, firstDateTimeRecordInTable, true);
+                string inDataSetName = "SC_DSI_H_" + InOutDataSetNameRef;                    
+                string outDataSetName = "SC_DSO_H_" + InOutDataSetNameRef; 
+                string pipelineName = "SC_PL01_Staging_H_" + dataSourceType + "_" + cpType.ToString();
+                string fileName = "Header_" + InOutDataSetNameRef;
+                string folderpath = folderPath + "/DL-" + dataSourceType + "/" + InOutDataSetNameRef;
+
+                DeployDatasetAndPipelines(pipelineName, inDataSetName, outDataSetName, tableName,
+                    lstElements, fileName, folderpath, sqlQuery, firstDateTimeRecordInTable, false,cpType);
+
+                Console.WriteLine("Deployed data sets and pipelines for  headers");
+                
+                //re: OUTPUT DATASET - Prepare the SQL query required for pipeline to execute on Source System
+
+                sqlQuery = ADFOperations.GenerateADFPipelineSQLQuery(tableName, lstElements, dateTimeField, true,cpType);
+
+                Console.WriteLine("Deploying data sets and pipelines for data");
+
+                inDataSetName = "SC_DSI_D_" + InOutDataSetNameRef;
+                outDataSetName = "SC_DSO_D_" + InOutDataSetNameRef;
+                pipelineName = "SC_PL01_Staging_D_" + dataSourceType + "_" + cpType.ToString();
+                fileName = "Data_" + InOutDataSetNameRef + "-{year}-{month}-{day}";
+
+                
+                DeployDatasetAndPipelines(pipelineName, inDataSetName, outDataSetName, tableName, 
+                    lstElements, fileName, folderpath, sqlQuery, firstDateTimeRecordInTable, true,cpType);
+
+                Console.WriteLine("Deployed data sets and pipelines for data");
             }
             else
             {
@@ -145,7 +169,7 @@ namespace StreamCentral.ADLSIntegration
 
         public static void DeployDatasetAndPipelines(string pipelineName, string inDataSetName, string outDataSetName, 
             string tableName, List<DataElement> lstElements, string fileName, string folderpath,
-             string sqlQuery, DateTime recorddateUTC, bool IsDataDeploy)
+             string sqlQuery, DateTime recorddateUTC, bool IsDataDeploy,CopyDataType cpType)
         {
             Dataset dsInput = null, dsOutput = null;
 
@@ -180,7 +204,7 @@ namespace StreamCentral.ADLSIntegration
 
             //Create Or Update Pipeline
             CreateOrUpdatePipeline(client, resourceGroupName, dataFactoryName, linkedServiceNameDestination, pipelineName,
-                inDataSetName, outDataSetName, sqlQuery, recorddateUTC, IsDataDeploy);
+                inDataSetName, outDataSetName, sqlQuery, recorddateUTC, IsDataDeploy,cpType);
 
         }
 
@@ -364,6 +388,7 @@ namespace StreamCentral.ADLSIntegration
                           {
                               Frequency = SchedulePeriod.Day,
                               Interval = 1,
+                              Style = SchedulerStyle.StartOfInterval
                           },
 
                           External = false,
@@ -421,8 +446,6 @@ namespace StreamCentral.ADLSIntegration
 
                     client.Datasets.Delete(resourceGroupName, dataFactoryName, datasetName);
 
-
-
                     Console.WriteLine("Deleted data set: " + datasetName);
                 }
             }
@@ -463,25 +486,19 @@ namespace StreamCentral.ADLSIntegration
 
         public static void CreateOrUpdatePipeline(DataFactoryManagementClient client, string resourceGroupName, string dataFactoryName,
             string linkedServiceName, string pipelineName, string dsInput, string dsOutput, string sqlQuery,
-            DateTime recordDateUTC, bool isDataDeploy)
+            DateTime recordDateUTC, bool isDataDeploy,CopyDataType cpType)
         {
+            DateTime PipelineActivePeriodStartTime = DateTime.Now.Subtract(TimeSpan.FromDays(1000.00));
+            DateTime PipelineActivePeriodEndTime = PipelineActivePeriodStartTime;
+            string mode = PipelineMode.OneTime;
 
-            DateTime PipelineActivePeriodStartTime, PipelineActivePeriodEndTime;
-            string mode;
-
-            if (isDataDeploy)
+            if ((isDataDeploy) && (!cpType.ToString().Equals(CopyDataType.All.ToString())))
             {
                 PipelineActivePeriodStartTime = recordDateUTC;
                 PipelineActivePeriodEndTime = recordDateUTC.AddYears(100);
                 mode = PipelineMode.Scheduled;
             }
-            else
-            {
-                PipelineActivePeriodStartTime = DateTime.Now.Subtract(TimeSpan.FromDays(1000.00));
-                PipelineActivePeriodEndTime = PipelineActivePeriodStartTime;
-                mode = PipelineMode.OneTime;
-            }
-
+         
 
             Activity activityInPipeline = new Activity()
             {
@@ -509,8 +526,16 @@ namespace StreamCentral.ADLSIntegration
                     LongRetry = 0,
                     LongRetryInterval = TimeSpan.FromMinutes(0.0),
                     Retry = 3,
-                    Delay = TimeSpan.FromMinutes(0.0)
+                    Delay = TimeSpan.FromMinutes(0.0)                   
+                },
+                Scheduler = new Scheduler()
+                {
+                    Frequency = "Day",
+                    Interval = 1,
+                    Style = SchedulerStyle.StartOfInterval
+
                 }
+                
             };
 
             Pipeline pl = null;
@@ -560,7 +585,7 @@ namespace StreamCentral.ADLSIntegration
                                 IsPaused = false,
                                 PipelineMode = mode,
                                 HubName = cgsHubName,
-                                ExpirationTime = TimeSpan.FromMinutes(3.00)
+                                ExpirationTime = TimeSpan.FromMinutes(0)
                             },
                         }
                     });
@@ -636,7 +661,8 @@ namespace StreamCentral.ADLSIntegration
             return InOutParams;
         }
 
-        public static string GenerateADFPipelineSQLQuery(string tableName, List<DataElement> inOutParams, string dateField, bool isDataQuery)
+        public static string GenerateADFPipelineSQLQuery(string tableName, 
+            List<DataElement> inOutParams, string dateField, bool isDataQuery, CopyDataType copyDataType)
         {
             string sqlQuery = "$$Text.Format('select ";
 
@@ -655,10 +681,40 @@ namespace StreamCentral.ADLSIntegration
 
             }
 
+            if(!(isDataQuery && copyDataType.ToString() == CopyDataType.All.ToString()))
+            {
+                sqlQuery = sqlQuery + " from " + tableName + " where [" + dateField + "] >= \\'{0:yyyy-MM-dd HH:mm}\\' AND  " +
+              " [" + dateField + "] < \\'{1:yyyy-MM-dd HH:mm}\\'', " +
+              "WindowStart, WindowEnd)";
 
-            sqlQuery = sqlQuery +  " from " + tableName + " where ["+ dateField +"] >= \\'{0:yyyy-MM-dd HH:mm}\\' AND  " +
-                " ["+ dateField + "] < \\'{1:yyyy-MM-dd HH:mm}\\'', " +
-                "WindowStart, WindowEnd)";
+                return sqlQuery;
+            }
+
+            switch (copyDataType)
+            {
+                case CopyDataType.LastIteration:
+                    {
+
+                        break;
+                    }
+                case CopyDataType.All:
+                    {
+                        sqlQuery = sqlQuery + " from " + tableName + "')";
+                        break;
+                    }
+                case CopyDataType.Distinct:
+                    {
+                        break;
+                    }
+                case CopyDataType.Transactional:
+                    {
+                        sqlQuery = sqlQuery + " from " + tableName + " where [" + dateField + "] >= \\'{0:yyyy-MM-dd HH:mm}\\' AND  " +
+               " [" + dateField + "] < \\'{1:yyyy-MM-dd HH:mm}\\'', " +
+               "WindowStart, WindowEnd)";
+                        break;
+                    }
+            }
+                    
 
             return sqlQuery;
         }

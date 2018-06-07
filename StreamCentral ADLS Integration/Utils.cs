@@ -52,6 +52,10 @@ namespace StreamCentral.ADLSIntegration
             {
                 dsType = "CoinsSQL";
             }
+            else if (tableName.ToLower().Contains("excel"))
+            {
+                dsType = tableName;
+            }
             else
             {
                 dsType = tableName;
@@ -59,5 +63,21 @@ namespace StreamCentral.ADLSIntegration
 
             return dsType;
         }
+
+
+    }
+
+    public enum CopyDataType
+    {
+        Transactional,
+        Distinct,
+        All,
+        LastIteration
+    }
+
+    public enum IsPaused
+    {    
+        True,
+        False
     }
 }
