@@ -67,17 +67,5 @@ namespace StreamCentral.ADLSIntegration
 
     }
 
-    public enum CopyDataType
-    {
-        Transactional,
-        Distinct,
-        All,
-        LastIteration
-    }
-
-    public enum IsPaused
-    {    
-        True,
-        False
-    }
+  
 }

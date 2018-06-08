@@ -73,9 +73,9 @@ namespace StreamCentral.ADLSIntegration
 
             foreach (string tableName in tableNames)
             {
-                DeployADFDataSetsAndPipelines(String.Empty, tableName, String.Empty, string.Empty, string.Empty,CopyDataType.All);
+                DeployADFDataSetsAndPipelines(String.Empty, tableName, String.Empty, string.Empty, string.Empty,CopyOnPremSQLToADLAType.All);
 
-                DeployADFDataSetsAndPipelines(String.Empty, tableName, String.Empty, string.Empty, string.Empty, CopyDataType.Transactional);
+                DeployADFDataSetsAndPipelines(String.Empty, tableName, String.Empty, string.Empty, string.Empty, CopyOnPremSQLToADLAType.Transactional);
             }
         }
 
@@ -87,15 +87,15 @@ namespace StreamCentral.ADLSIntegration
 
             foreach (string tableName in tableNames)
             {
-                DeployADFDataSetsAndPipelines(String.Empty, tableName, String.Empty, string.Empty, string.Empty, CopyDataType.All);
+                DeployADFDataSetsAndPipelines(String.Empty, tableName, String.Empty, string.Empty, string.Empty, CopyOnPremSQLToADLAType.All);
 
-                DeployADFDataSetsAndPipelines(String.Empty, tableName, String.Empty, string.Empty, string.Empty, CopyDataType.Transactional);
+                DeployADFDataSetsAndPipelines(String.Empty, tableName, String.Empty, string.Empty, string.Empty, CopyOnPremSQLToADLAType.Transactional);
             }
         }
 
         //Create Data Sets and Pipelines - Deploy these in Azure Data Factory for a single Structure.
         public static void DeployADFDataSetsAndPipelines(string dataSourceName, string tableName, 
-            string folderPath, string dateTimeField, string interval, CopyDataType cpType)
+            string folderPath, string dateTimeField, string interval, CopyOnPremSQLToADLAType  cpType)
         {
             //check if there is any data in the source structure.
             DateTime firstDateTimeRecordInTable;
@@ -169,7 +169,7 @@ namespace StreamCentral.ADLSIntegration
 
         public static void DeployDatasetAndPipelines(string pipelineName, string inDataSetName, string outDataSetName, 
             string tableName, List<DataElement> lstElements, string fileName, string folderpath,
-             string sqlQuery, DateTime recorddateUTC, bool IsDataDeploy,CopyDataType cpType)
+             string sqlQuery, DateTime recorddateUTC, bool IsDataDeploy,CopyOnPremSQLToADLAType cpType)
         {
             Dataset dsInput = null, dsOutput = null;
 
@@ -486,13 +486,13 @@ namespace StreamCentral.ADLSIntegration
 
         public static void CreateOrUpdatePipeline(DataFactoryManagementClient client, string resourceGroupName, string dataFactoryName,
             string linkedServiceName, string pipelineName, string dsInput, string dsOutput, string sqlQuery,
-            DateTime recordDateUTC, bool isDataDeploy,CopyDataType cpType)
+            DateTime recordDateUTC, bool isDataDeploy,CopyOnPremSQLToADLAType cpType)
         {
             DateTime PipelineActivePeriodStartTime = DateTime.Now.Subtract(TimeSpan.FromDays(1000.00));
             DateTime PipelineActivePeriodEndTime = PipelineActivePeriodStartTime;
             string mode = PipelineMode.OneTime;
 
-            if ((isDataDeploy) && (!cpType.ToString().Equals(CopyDataType.All.ToString())))
+            if ((isDataDeploy) && (!cpType.ToString().Equals(CopyOnPremSQLToADLAType.All.ToString())))
             {
                 PipelineActivePeriodStartTime = recordDateUTC;
                 PipelineActivePeriodEndTime = recordDateUTC.AddYears(100);
@@ -662,7 +662,7 @@ namespace StreamCentral.ADLSIntegration
         }
 
         public static string GenerateADFPipelineSQLQuery(string tableName, 
-            List<DataElement> inOutParams, string dateField, bool isDataQuery, CopyDataType copyDataType)
+            List<DataElement> inOutParams, string dateField, bool isDataQuery, CopyOnPremSQLToADLAType copyDataType)
         {
             string sqlQuery = "$$Text.Format('select ";
 
@@ -681,7 +681,7 @@ namespace StreamCentral.ADLSIntegration
 
             }
 
-            if(!(isDataQuery && copyDataType.ToString() == CopyDataType.All.ToString()))
+            if(!(isDataQuery && copyDataType.ToString() == CopyOnPremSQLToADLAType.All.ToString()))
             {
                 sqlQuery = sqlQuery + " from " + tableName + " where [" + dateField + "] >= \\'{0:yyyy-MM-dd HH:mm}\\' AND  " +
               " [" + dateField + "] < \\'{1:yyyy-MM-dd HH:mm}\\'', " +
@@ -692,21 +692,21 @@ namespace StreamCentral.ADLSIntegration
 
             switch (copyDataType)
             {
-                case CopyDataType.LastIteration:
+                case CopyOnPremSQLToADLAType.LastIteration:
                     {
 
                         break;
                     }
-                case CopyDataType.All:
+                case CopyOnPremSQLToADLAType.All:
                     {
                         sqlQuery = sqlQuery + " from " + tableName + "')";
                         break;
                     }
-                case CopyDataType.Distinct:
+                case CopyOnPremSQLToADLAType.Distinct:
                     {
                         break;
                     }
-                case CopyDataType.Transactional:
+                case CopyOnPremSQLToADLAType.Transactional:
                     {
                         sqlQuery = sqlQuery + " from " + tableName + " where [" + dateField + "] >= \\'{0:yyyy-MM-dd HH:mm}\\' AND  " +
                " [" + dateField + "] < \\'{1:yyyy-MM-dd HH:mm}\\'', " +

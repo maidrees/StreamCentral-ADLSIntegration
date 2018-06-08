@@ -5,42 +5,31 @@ using System.Text;
 using System.Threading.Tasks;
 
 namespace StreamCentral.ADLSIntegration
-{
+{    
     class Program
     {
-        private static string _dataSourceName = String.Empty;
-
-        private static string _tableName = String.Empty;
-
-        private static string _folderPath = String.Empty;
-
-        private static string _filterDateTimeField = String.Empty;
-
-        private static string _filterDateTimeInterval = String.Empty;
-
-        private static string _deployCriteria = String.Empty;
-
-        static void Main(string[] args)
+       static void Main(string[] args)
         {
             try
             {
                 LoadCommandLineArgs(args);
                 //Call Method: Create Data Sets, Pipelines for all structures qualified for criteria.
 
-                if(_deployCriteria.Equals("search"))
+                if(InitialParams.DeployCriteria.Equals("search"))
                 {
                     string[] searchText = new string[1];
 
-                    searchText[0] = _dataSourceName;
+                    searchText[0] = InitialParams.DataSourceName;
 
                     ADFOperations.DeployADFDataSetsAndPipelines(searchText);
                 }
 
-                ADFOperations.DeployADFDataSetsAndPipelines(_dataSourceName,
-                    _tableName, _folderPath, _filterDateTimeField, _filterDateTimeInterval, CopyDataType.All);
+                ADFOperations.DeployADFDataSetsAndPipelines(InitialParams.DataSourceName,
+                    InitialParams.TableName, InitialParams.FolderPath, InitialParams.FilterDateTimeField, InitialParams.FilterDateTimeInterval, CopyOnPremSQLToADLAType.All);
 
-                ADFOperations.DeployADFDataSetsAndPipelines(_dataSourceName,
-    _tableName, _folderPath, _filterDateTimeField, _filterDateTimeInterval, CopyDataType.Transactional);
+
+                ADFOperations.DeployADFDataSetsAndPipelines(InitialParams.DataSourceName,
+                    InitialParams.TableName, InitialParams.FolderPath, InitialParams.FilterDateTimeField, InitialParams.FilterDateTimeInterval, CopyOnPremSQLToADLAType.Transactional);
 
                 //                ADFOperations.DeployADFDataSetsAndPipelines(_dataSourceName,
                 //_tableName, _folderPath, _filterDateTimeField, _filterDateTimeInterval, CopyDataType.Distinct,"sys_id");
@@ -80,22 +69,33 @@ namespace StreamCentral.ADLSIntegration
                 {
                     if (!System.String.IsNullOrEmpty(listArguments[0]))
                     {
-                        _deployCriteria = listArguments[0].ToString();
-                        Console.WriteLine(_deployCriteria);
+                        InitialParams.DeployCriteria = listArguments[0].ToString();
+                        Console.WriteLine(InitialParams.DeployCriteria);
                     }
                 }
                 catch (IndexOutOfRangeException ex)
                 {
                     Console.WriteLine("Please provide the command line arguments to proceed: deployCriteria,dataSourceName, tableName, folderPath, filterDateTimeField, filterDateTimeInterval");
+                    return;
                 }
 
+                try
+                {
+                    if(InitialParams.DeployCriteria.Equals("search"))
+                    {
+
+                    }
+                } catch(Exception ex)
+                {
+
+                }
 
                 try
                 {
                     if (!System.String.IsNullOrEmpty(listArguments[1]))
                     {
-                        _dataSourceName = listArguments[1].ToString();
-                        Console.WriteLine(_dataSourceName);
+                        InitialParams.DataSourceName = listArguments[1].ToString();
+                        Console.WriteLine(InitialParams.DataSourceName);
                     }
                 }catch(IndexOutOfRangeException ex)
                 {
@@ -104,24 +104,24 @@ namespace StreamCentral.ADLSIntegration
 
                 if (!System.String.IsNullOrEmpty(listArguments[2]))
                 {
-                    _tableName = listArguments[2].ToString();
-                    Console.WriteLine(_tableName);
+                    InitialParams.TableName = listArguments[2].ToString();
+                    Console.WriteLine(InitialParams.TableName);
                 }
                 
                 if (!System.String.IsNullOrEmpty(listArguments[3]))
                 {
-                    _folderPath = listArguments[3].ToString();
-                    Console.WriteLine(_folderPath);
+                    InitialParams.FolderPath = listArguments[3].ToString();
+                    Console.WriteLine(InitialParams.FolderPath);
                 }
                 if (!System.String.IsNullOrEmpty(listArguments[4]))
                 {
-                    _filterDateTimeField = listArguments[4].ToString();
-                    Console.WriteLine(_filterDateTimeField);
+                    InitialParams.FilterDateTimeField = listArguments[4].ToString();
+                    Console.WriteLine(InitialParams.FilterDateTimeField);
                 }
                 if (!System.String.IsNullOrEmpty(listArguments[5]))
                 {
-                    _filterDateTimeInterval = listArguments[5].ToString();
-                    Console.WriteLine(_filterDateTimeInterval);
+                    InitialParams.FilterDateTimeInterval = listArguments[5].ToString();
+                    Console.WriteLine(InitialParams.FilterDateTimeInterval);
                 }
             }
             catch (IndexOutOfRangeException ex)
