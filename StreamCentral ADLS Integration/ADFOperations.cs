@@ -43,6 +43,12 @@ namespace StreamCentral.ADLSIntegration
 
         static ADFOperations()
         {
+            CreateManagementClientInstance();
+        }
+
+        public static DataFactoryManagementClient  CreateManagementClientInstance()
+        {
+
             //IMPORTANT: generate security token for the subsciption and AAD App
             TokenCloudCredentials aadTokenCredentials = new TokenCloudCredentials(ConfigurationSettings.AppSettings["SubscriptionId"],
                     GetAuthorizationHeader().Result);
@@ -52,6 +58,7 @@ namespace StreamCentral.ADLSIntegration
             // create data factory management client
             client = new DataFactoryManagementClient(aadTokenCredentials, resourceManagerUri);
 
+            return client;
         }
 
         public static string getClientToken()
@@ -84,6 +91,8 @@ namespace StreamCentral.ADLSIntegration
         public static void DeployADFDataSetsAndPipelines(string [] searchTexts)
         {
             List<string> tableNames = ADFOperations.ListFilteredTableNames(searchTexts);
+
+            //tableNames.Reverse();
 
             foreach (string tableName in tableNames)
             {
@@ -153,7 +162,16 @@ namespace StreamCentral.ADLSIntegration
                 inDataSetName = "SC_DSI_D_" + InOutDataSetNameRef;
                 outDataSetName = "SC_DSO_D_" + InOutDataSetNameRef;
                 pipelineName = "SC_PL01_Staging_D_" + dataSourceType + "_" + cpType.ToString();
-                fileName = "Data_" + InOutDataSetNameRef + "-{year}-{month}-{day}";
+
+                if(cpType.Equals(CopyOnPremSQLToADLAType.Distinct) || cpType.Equals(CopyOnPremSQLToADLAType.All) || cpType.Equals(CopyOnPremSQLToADLAType.Flattened))
+                {
+                    fileName = "Data_" + InOutDataSetNameRef;
+                }
+                else
+                {
+                    fileName = "Data_" + InOutDataSetNameRef + "-{year}-{month}-{day}";
+                }
+                
 
                 
                 DeployDatasetAndPipelines(pipelineName, inDataSetName, outDataSetName, tableName, 
@@ -172,6 +190,8 @@ namespace StreamCentral.ADLSIntegration
              string sqlQuery, DateTime recorddateUTC, bool IsDataDeploy,CopyOnPremSQLToADLAType cpType)
         {
             Dataset dsInput = null, dsOutput = null;
+
+            
 
             try
             {
@@ -303,10 +323,18 @@ namespace StreamCentral.ADLSIntegration
 
                         },
                     }
-                });
+                });                
 
                 // create input dataset
                 Console.WriteLine("Created input dataset - " + datasetSource);
+            }
+            catch(InvalidOperationException invalidToken)
+            {
+                if (invalidToken.Message.Contains("token") || invalidToken.Message.Contains("expir"))
+                {
+                    Console.WriteLine("Oops! Client Token Expired while creating Input Data set:" + invalidToken.Message);
+                    client = CreateManagementClientInstance();
+                }
             }
             catch (Exception ex)
             {
@@ -322,38 +350,40 @@ namespace StreamCentral.ADLSIntegration
 
             if (!isDataDeploy)
             { isFirstRowHeader = true; }
-                        
-            client.Datasets.CreateOrUpdate(resourceGroupName, dataFactoryName,
-            new DatasetCreateOrUpdateParameters()
+
+            try
             {
-                Dataset = new Dataset()
+                client.Datasets.CreateOrUpdate(resourceGroupName, dataFactoryName,
+                new DatasetCreateOrUpdateParameters()
                 {
-                      Name = datasetDestination,
-                      Properties = new DatasetProperties()
-                      {
+                    Dataset = new Dataset()
+                    {
+                        Name = datasetDestination,
+                        Properties = new DatasetProperties()
+                        {
 
-                          LinkedServiceName = linkedServiceName,
-                          Structure = InputParams,
+                            LinkedServiceName = linkedServiceName,
+                            Structure = InputParams,
 
-                          TypeProperties = new AzureDataLakeStoreDataset()
-                          {
-                              FileName = fileName,
+                            TypeProperties = new AzureDataLakeStoreDataset()
+                            {
+                                FileName = fileName,
 
-                              FolderPath = folderPath,
+                                FolderPath = folderPath,
 
-                              Format = new TextFormat()
-                              {
-                                  RowDelimiter = "\n",
-                                  ColumnDelimiter = "~",
-                                  NullValue = null,
-                                  EncodingName = "utf-8",
-                                  SkipLineCount = 0,
-                                  FirstRowAsHeader = isFirstRowHeader,
-                                  TreatEmptyAsNull = true
-                              },
+                                Format = new TextFormat()
+                                {
+                                    RowDelimiter = "\n",
+                                    ColumnDelimiter = "~",
+                                    NullValue = String.Empty,
+                                    EncodingName = "utf-8",
+                                    SkipLineCount = 0,
+                                    FirstRowAsHeader = isFirstRowHeader,
+                                    TreatEmptyAsNull = true
+                                },
 
-                              PartitionedBy = new Collection<Partition>()
-                              {
+                                PartitionedBy = new Collection<Partition>()
+                                  {
                                     new Partition()
                                     {
                                         Name = "year",
@@ -381,28 +411,41 @@ namespace StreamCentral.ADLSIntegration
                                             Format  = "dd"
                                         }
                                     }
-                              },
-                          },
+                                  },
+                            },
 
-                          Availability = new Availability()
-                          {
-                              Frequency = SchedulePeriod.Day,
-                              Interval = 1,
-                              Style = SchedulerStyle.StartOfInterval
-                          },
+                            Availability = new Availability()
+                            {
+                                Frequency = SchedulePeriod.Day,
+                                Interval = 1,
+                                Style = SchedulerStyle.StartOfInterval
+                            },
 
-                          External = false,
+                            External = false,
 
-                          Policy = new Policy()
-                          {
-                              Validation = new ValidationPolicy()
-                              {
-                                  MinimumRows = 2
-                              }
-                          }
-                      }
-                  }
-            });
+                            Policy = new Policy()
+                            {
+                                Validation = new ValidationPolicy()
+                                {
+                                    MinimumRows = 2
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+            catch (InvalidOperationException invalidToken)
+            {
+                if (invalidToken.Message.Contains("token") || invalidToken.Message.Contains("expir"))
+                {
+                    Console.WriteLine("Oops! Client Token Expired while creating output data set : ",invalidToken.Message);
+                    client = CreateManagementClientInstance();
+                }
+            }
+            catch(Exception ex)
+            {
+                Console.WriteLine("Generic Exception occured and couldnt handled: ", ex.Message);
+            }
         }
 
         public static bool DeleteDatasets(string startWithSearchText)
@@ -661,27 +704,94 @@ namespace StreamCentral.ADLSIntegration
             return InOutParams;
         }
 
-        public static string GenerateADFPipelineSQLQuery(string tableName, 
+        
+        //public static string GenerateADFPipelineSQLQuery(string tableName, 
+        //    List<DataElement> inOutParams, string dateField, bool isDataQuery, CopyOnPremSQLToADLAType copyDataType)
+        //{
+        //    string sqlQuery = "$$Text.Format('select ";
+
+        //    int itemIteration = 0;
+        //    foreach (var columnName in inOutParams)
+        //    {
+        //        if (itemIteration < inOutParams.Count - 1)
+        //        {
+        //            sqlQuery = sqlQuery + "[" + columnName.Name + "],";
+        //            itemIteration = itemIteration + 1;
+        //        }
+        //        else
+        //        {
+        //            sqlQuery = sqlQuery + "[" + columnName.Name + "]";
+        //        }
+
+        //    }
+
+        //    if(!(isDataQuery && copyDataType.ToString() == CopyOnPremSQLToADLAType.All.ToString()))
+        //    {
+        //        sqlQuery = sqlQuery + " from " + tableName + " where [" + dateField + "] >= \\'{0:yyyy-MM-dd HH:mm}\\' AND  " +
+        //      " [" + dateField + "] < \\'{1:yyyy-MM-dd HH:mm}\\'', " +
+        //      "WindowStart, WindowEnd)";
+
+        //        return sqlQuery;
+        //    }
+
+        //    switch (copyDataType)
+        //    {
+        //        case CopyOnPremSQLToADLAType.LastIteration:
+        //            {
+
+        //                break;
+        //            }
+        //        case CopyOnPremSQLToADLAType.All:
+        //            {
+        //                sqlQuery = sqlQuery + " from " + tableName + "')";
+        //                break;
+        //            }
+        //        case CopyOnPremSQLToADLAType.Distinct:
+        //            {
+        //                break;
+        //            }
+        //        case CopyOnPremSQLToADLAType.Transactional:
+        //            {
+        //                sqlQuery = sqlQuery + " from " + tableName + " where [" + dateField + "] >= \\'{0:yyyy-MM-dd HH:mm}\\' AND  " +
+        //       " [" + dateField + "] < \\'{1:yyyy-MM-dd HH:mm}\\'', " +
+        //       "WindowStart, WindowEnd)";
+        //                break;
+        //            }
+        //    }
+                    
+
+        //    return sqlQuery;
+        //}
+
+        public static string GenerateADFPipelineSQLQuery(string tableName,
             List<DataElement> inOutParams, string dateField, bool isDataQuery, CopyOnPremSQLToADLAType copyDataType)
         {
             string sqlQuery = "$$Text.Format('select ";
+
+            string paramsQuery = String.Empty;
 
             int itemIteration = 0;
             foreach (var columnName in inOutParams)
             {
                 if (itemIteration < inOutParams.Count - 1)
                 {
-                    sqlQuery = sqlQuery + "[" + columnName.Name + "],";
+                    paramsQuery = paramsQuery + "[" + columnName.Name + "],";
                     itemIteration = itemIteration + 1;
                 }
                 else
                 {
-                    sqlQuery = sqlQuery + "[" + columnName.Name + "]";
+                    paramsQuery = paramsQuery + "[" + columnName.Name + "]";
                 }
 
             }
 
-            if(!(isDataQuery && copyDataType.ToString() == CopyOnPremSQLToADLAType.All.ToString()))
+            if (!System.String.IsNullOrEmpty(paramsQuery))
+            {
+                sqlQuery = sqlQuery + paramsQuery;
+            }
+
+            //if (!(isDataQuery && copyDataType.ToString() == CopyOnPremSQLToADLAType.All.ToString()))
+            if (!(isDataQuery))
             {
                 sqlQuery = sqlQuery + " from " + tableName + " where [" + dateField + "] >= \\'{0:yyyy-MM-dd HH:mm}\\' AND  " +
               " [" + dateField + "] < \\'{1:yyyy-MM-dd HH:mm}\\'', " +
@@ -704,6 +814,9 @@ namespace StreamCentral.ADLSIntegration
                     }
                 case CopyOnPremSQLToADLAType.Distinct:
                     {
+                        sqlQuery = sqlQuery + " from (Select " + paramsQuery + ",ROW_NUMBER() " +
+                            " over(partition by " + InitialParams.PrimaryKey + " order by " +
+                            dateField + " desc) pk from " + tableName + ") dat where pk = 1')";
                         break;
                     }
                 case CopyOnPremSQLToADLAType.Transactional:
@@ -714,7 +827,36 @@ namespace StreamCentral.ADLSIntegration
                         break;
                     }
             }
-                    
+
+            if(tableName.Contains("DSServiceNowCMNLocations"))
+            {
+                sqlQuery = "$$Text.Format('SELECT [RECORDDATEUTC],[city]," +
+                    "(select top 1 name from Fact_DSServiceNowCompaniesmetricdetails where sys_id = [company]) as [company]," +
+                    "(select top 1 name from Fact_DSServiceNowUsersmetricdetails where sys_id = [contact] and name is not null) as [contact]," +
+                    "[country],[fax_phone],[full_name],[lat_long_error],[latitude],[longitude],[name],[parent],[phone]," +
+                    "[phone_territory],[state],[stock_room],[street],[sys_created_by],[sys_created_on],[sys_created_onId],[sys_id]," +
+                    "[sys_mod_count],[sys_tags],[sys_updated_by],[sys_updated_on],[sys_updated_onId],[u_boolean_1]," +
+                    "(select top 1 name from FACT_DSServiceNowUsersmetricdetails where sys_id = [u_chief_operating_officer]) as [u_chief_operating_officer]," +
+                    "(select top 1 name from FACT_DSServiceNowUsersmetricdetails where sys_id = [u_contracts_manager]) as [u_contracts_manager], " +
+                    "(select top 1 name from FACT_DSServiceNowUsersmetricdetails where sys_id = [u_head_of_delivery]) as [u_head_of_delivery], " +
+                    "(select top 1 name from FACT_DSServiceNowUsersmetricdetails where sys_id = [u_project_manager]) as [u_project_manager], " +
+                    "(select top 1 name from [FACT_DSServiceNowUsersmetricdetails] where sys_id = [u_reference_1]) as [u_reference_1]," +
+                    "(select top 1 name from [FACT_DSServiceNowUsersmetricdetails] where sys_id = [u_reference_2]) as [u_reference_2]," +
+                    "(select top 1 name from [FACT_DSServiceNowUsersmetricdetails] where sys_id = [u_reference_4]) as [u_reference_4], " +
+                    "(select top 1 name from [FACT_DSServiceNowUsersmetricdetails] where sys_id = [u_reference_5]) as [u_reference_5],  " +
+                    "(select top 1 name from [FACT_DSServiceNowUsersmetricdetails] where sys_id = [u_regionalmanager_office]) as [u_regionalmanager_office]," +
+                    "[u_string_1],[zip] from " +
+
+                    "(Select[RECORDDATEUTC], [city], [company], [contact], [country], [fax_phone], [full_name], [lat_long_error], [latitude],[longitude]," +
+                    " [name], [parent], [phone], [phone_territory], [state], [stock_room], [street], [sys_created_by], [sys_created_on]," +
+                    "[sys_created_onId], [sys_id], [sys_mod_count], [sys_tags], [sys_updated_by], [sys_updated_on], [sys_updated_onId]," +
+                    " [u_boolean_1],[u_chief_operating_officer], [u_contracts_manager], [u_head_of_delivery], [u_project_manager], " +
+                    "[u_reference_1],[u_reference_2],[u_reference_4],[u_reference_5], " +
+                    "[u_regionalmanager_office], [u_string_1], " +
+                    "[zip], ROW_NUMBER() over(partition by sys_id order by recorddateutc desc) pk from FACT_DSServiceNowCMNLocationsmetricdetails) " +
+                    "dat where pk = 1')";
+
+            }
 
             return sqlQuery;
         }
@@ -773,11 +915,11 @@ namespace StreamCentral.ADLSIntegration
 
             if (!System.String.IsNullOrEmpty(dateField))
             {
-                sqlQuery = String.Format("SELECT TOP 1 {0} FROM {1} ORDER BY {2} ASC", dateField, tableName, dateField);
+                sqlQuery = String.Format("SELECT TOP 1 {0} FROM {1} WHERE {2} IS NOT NULL ORDER BY {3} ASC", dateField, tableName, dateField,dateField);
             }
             else
             {
-                sqlQuery = String.Format("SELECT TOP 1 RECORDDATEUTC FROM {0} ORDER BY RECORDDATEUTC ASC", tableName);
+                sqlQuery = String.Format("SELECT TOP 1 RECORDDATEUTC FROM {0} WHERE RECORDDATEUTC IS NOT NULL ORDER BY RECORDDATEUTC ASC", tableName);
             }
 
             SqlConnection connect = SQLUtils.SQLConnect();

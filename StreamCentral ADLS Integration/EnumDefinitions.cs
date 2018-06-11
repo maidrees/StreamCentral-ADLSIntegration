@@ -15,7 +15,8 @@ namespace StreamCentral.ADLSIntegration
         Transactional,
         Distinct,
         All,
-        LastIteration
+        LastIteration,
+        Flattened
     }
 
     public enum IsPipelineStartModePaused

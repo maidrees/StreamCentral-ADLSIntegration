@@ -52,6 +52,10 @@ namespace StreamCentral.ADLSIntegration
             {
                 dsType = "CoinsSQL";
             }
+            else if(tableName.ToLower().Contains("pocbdl"))
+            {
+                dsType = "CMT";
+            }
             else if (tableName.ToLower().Contains("excel"))
             {
                 dsType = tableName;

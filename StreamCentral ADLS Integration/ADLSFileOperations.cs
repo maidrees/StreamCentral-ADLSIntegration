@@ -27,19 +27,25 @@ namespace StreamCentral.ADLSIntegration
             //var creds = new ClientCredential(ConfigurationSettings.AppSettings["ApplicationId"], ConfigurationSettings.AppSettings["Password"]);
             //ServiceClientCredentials clientCreds2 = ApplicationTokenProvider.LoginSilentAsync(ConfigurationSettings.AppSettings["ActiveDirectoryTenantId"], creds).GetAwaiter().GetResult();
 
-           // client = AdlsClient.CreateClient(_adlsName, clientCreds2);
+            //client = AdlsClient.CreateClient(_adlsName, clientCreds2);
         }
-        public static void DeleteEmptyFilesInFolder(string folderName)
+        public static void DeleteEmptyFilesInFolder(string folderName,string searchText, bool isEmptyFilesOnly)
         {
-            Dictionary<string, string> lstFilesInfolder = EnumerateDirectory(folderName);
+            Dictionary<string, string> lstFilesInfolder = EnumerateDirectory(folderName,searchText);
 
             foreach (string fileName in lstFilesInfolder.Values)
             {
-
-                if (GetFileProperties(fileName) <= 3)
+                if (isEmptyFilesOnly)
                 {
-                    Console.WriteLine("Found an Empty File: " + fileName);
+                    if (GetFileProperties(fileName) <= 3)
+                    {
+                        Console.WriteLine("Found an Empty File: " + fileName);
 
+                        DeleteFiles(fileName);
+                    }
+                }
+                else
+                {
                     DeleteFiles(fileName);
                 }
             }
@@ -135,13 +141,26 @@ namespace StreamCentral.ADLSIntegration
         public static Dictionary<string, string> EnumerateDirectory(string folderPath)
         {
 
+            return EnumerateDirectory(folderPath, "");
+        }
+
+        public static Dictionary<string, string> EnumerateDirectory(string folderPath,string searchText)
+        {
+
             Dictionary<string, string> lstItemsInDir = new Dictionary<string, string>();
+            
             // Enumerate directory
             foreach (var entry in client.EnumerateDirectory(folderPath))
             {
-                lstItemsInDir.Add(entry.Name, entry.FullName);
+                if ((!System.String.IsNullOrEmpty(searchText)) && (entry.FullName.Contains(searchText)))
+                {
+                    lstItemsInDir.Add(entry.Name, entry.FullName);
+                }
+                else
+                {
+                    lstItemsInDir.Add(entry.Name, entry.FullName);
+                }
             }
-
             return lstItemsInDir;
         }
 
