@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Configuration;
 
 namespace StreamCentral.ADLSIntegration
 {
@@ -34,6 +35,8 @@ namespace StreamCentral.ADLSIntegration
 
         private static string _primaryKey = String.Empty;
 
+        private static string _environment = String.Empty;
+
         public static string FilterDistinctField
         {
             get
@@ -56,7 +59,17 @@ namespace StreamCentral.ADLSIntegration
 
         public static string FolderPath
         {
-            get { return _folderPath; }
+            get
+            {
+                try
+                {
+                    return (String.IsNullOrEmpty(_folderPath) ? ConfigurationSettings.AppSettings["folderPath"] : _folderPath);
+                }
+                catch(Exception ex)
+                {
+                    return String.Empty;
+                }
+            }
             set { _folderPath = value; }
         }
 
@@ -104,14 +117,48 @@ namespace StreamCentral.ADLSIntegration
 
         public static string DataSourcePathInADLS
         {
-            get { return _dataSourcePathInADLS; }
-            set { _dataSourcePathInADLS = value; }
+            get
+            {
+
+                return (String.IsNullOrEmpty(_dataSourcePathInADLS)) ? _dataSourceName : _dataSourcePathInADLS;               
+            }
+            set
+            {
+                if (String.IsNullOrEmpty(value))
+                {
+                    _dataSourceName = Utils.GetdataSourceType(_dataSourceName);
+                }
+                else
+                {
+                    _dataSourcePathInADLS = value;
+                }
+            }
         }
 
         public static string TablePathInADLS
         {
-            get { return _tablePathInADLS; }
-            set { _tablePathInADLS = value; }
+            get
+            {
+                return  (String.IsNullOrEmpty(_tablePathInADLS)) ? _tableName : _tablePathInADLS;                
+            }
+            set
+            {
+                if (String.IsNullOrEmpty(value))
+                {
+                    _tablePathInADLS = _tableName;
+                }
+                else
+                {
+                    _tablePathInADLS = value;
+                }
+
+            }
+        }
+
+        public static string Environment
+        {
+            get { return _environment; }
+            set { _environment = value; }
         }
     }
 

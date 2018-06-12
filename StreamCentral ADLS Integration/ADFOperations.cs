@@ -118,11 +118,12 @@ namespace StreamCentral.ADLSIntegration
             //List the attribute, data type of each column
             List<DataElement> lstElements = ADFOperations.GenerateStructure(tableName);
 
-            //if (System.String.IsNullOrEmpty(dataSourceName))
+            //if (System.String.IsNullOrEmpty(InitialParams.DataSourcePathInADLS))
             //{
-                dataSourceType = Utils.GetdataSourceType(tableName);
+            //    InitialParams.DataSourcePathInADLS = Utils.GetdataSourceType(tableName);
             //}
 
+            
             dateTimeField = (String.IsNullOrEmpty(dateTimeField) ? "recorddateutc" : dateTimeField);
             folderPath = (String.IsNullOrEmpty(folderPath) ? ConfigurationSettings.AppSettings["folderPath"] : folderPath);
             
@@ -142,11 +143,12 @@ namespace StreamCentral.ADLSIntegration
 
                 Console.WriteLine("Deploying data sets and pipelines for Headers");
 
-                string inDataSetName = "SC_DSI_H_" + InOutDataSetNameRef;                    
-                string outDataSetName = "SC_DSO_H_" + InOutDataSetNameRef; 
+                string inDataSetName = String.Format("SC_DSI_H_{0}",InOutDataSetNameRef);                    
+                string outDataSetName =String.Format("SC_DSO_H_{0}",InOutDataSetNameRef); 
                 string pipelineName = "SC_PL01_Staging_H_" + dataSourceType + "_" + cpType.ToString();
                 string fileName = "Header_" + InOutDataSetNameRef;
-                string folderpath = folderPath + "/DL-" + dataSourceType + "/" + InOutDataSetNameRef;
+                string folderpath = String.Format("{0}/DL-{1}/{2}/{3}", InitialParams.FolderPath,
+                    InitialParams.DataSourcePathInADLS, InitialParams.TablePathInADLS, InOutDataSetNameRef);
 
                 DeployDatasetAndPipelines(pipelineName, inDataSetName, outDataSetName, tableName,
                     lstElements, fileName, folderpath, sqlQuery, firstDateTimeRecordInTable, false,cpType);
@@ -159,9 +161,9 @@ namespace StreamCentral.ADLSIntegration
 
                 Console.WriteLine("Deploying data sets and pipelines for data");
 
-                inDataSetName = "SC_DSI_D_" + InOutDataSetNameRef;
-                outDataSetName = "SC_DSO_D_" + InOutDataSetNameRef;
-                pipelineName = "SC_PL01_Staging_D_" + dataSourceType + "_" + cpType.ToString();
+                inDataSetName = String.Format("SC_DSI_D_{0}",InOutDataSetNameRef);
+                outDataSetName = String.Format("SC_DSO_D_{0}", InOutDataSetNameRef);
+                pipelineName = String.Format("SC_PL01_{0}_D_{1}_{2}",InitialParams.Environment, InitialParams.DataSourceName, cpType.ToString());
 
                 if(cpType.Equals(CopyOnPremSQLToADLAType.Distinct) || cpType.Equals(CopyOnPremSQLToADLAType.All) || cpType.Equals(CopyOnPremSQLToADLAType.Flattened))
                 {

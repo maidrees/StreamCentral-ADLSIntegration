@@ -76,7 +76,9 @@ namespace StreamCentral.ADLSIntegration
         }
 
         /// <summary>
-        /// This Method loads the Command Line Params passed as arguments during the execution of the program in the Static Variables.
+        /// This Method loads the Command Line Params passed as arguments 
+        /// during the execution of the program 
+        /// in the Application Static Variables.
         /// </summary>
         /// <param name="args"></param>
         static void LoadCommandLineArgs(String[] args)
@@ -110,48 +112,77 @@ namespace StreamCentral.ADLSIntegration
                     }
                 } catch(Exception ex)
                 {
-
+                    Console.WriteLine("Not all search parameters are passed as arguments: " + ex.Message);
                 }
 
+                //Specify the Data Source Name
                 try
                 {
                     if (!System.String.IsNullOrEmpty(listArguments[1]))
                     {
                         InitialParams.DataSourceName = listArguments[1].ToString();
-                        Console.WriteLine(InitialParams.DataSourceName);
+                        Console.WriteLine("Data Source Name: " + InitialParams.DataSourceName);
                     }
                 }catch(IndexOutOfRangeException ex)
                 {
                     Console.WriteLine("Please provide the command line arguments to proceed: dataSourceName, tableName, folderPath, filterDateTimeField, filterDateTimeInterval");                    
                 }
 
+                //specify the name of the table for which the ETL to be configured.
                 if (!System.String.IsNullOrEmpty(listArguments[2]))
                 {
                     InitialParams.TableName = listArguments[2].ToString();
-                    Console.WriteLine(InitialParams.TableName);
+                    Console.WriteLine("Table Name entered: " + InitialParams.TableName);
                 }
                 
+                //specify the root path of ADLS
                 if (!System.String.IsNullOrEmpty(listArguments[3]))
                 {
                     InitialParams.FolderPath = listArguments[3].ToString();
-                    Console.WriteLine(InitialParams.FolderPath);
+                    Console.WriteLine("Folder Path entered: " + InitialParams.FolderPath);
                 }
+
+                //Used to specify the time interval field that shall be used to slice the data in ETL process. 
+                //RECORDDATEUTC will become otherwise the default time interval.
                 if (!System.String.IsNullOrEmpty(listArguments[4]))
                 {
                     InitialParams.FilterDateTimeField = listArguments[4].ToString();
-                    Console.WriteLine(InitialParams.FilterDateTimeField);
+                    Console.WriteLine("Filter Time Field entered: "+ InitialParams.FilterDateTimeField);
                 }
+
+                //Used to configure the schedule time interval for the Pipeline to run the activity
                 if (!System.String.IsNullOrEmpty(listArguments[5]))
                 {
                     InitialParams.FilterDateTimeInterval = listArguments[5].ToString();
-                    Console.WriteLine(InitialParams.FilterDateTimeInterval);
+                    Console.WriteLine("Filter Date Interval for schedule entered:  " + InitialParams.FilterDateTimeInterval);
                 }
 
+                //used for ETL of distinct records.
                 if (!System.String.IsNullOrEmpty(listArguments[6]))
                 {
                     InitialParams.PrimaryKey = listArguments[6].ToString();
-                    Console.WriteLine(InitialParams.PrimaryKey);
+                    Console.WriteLine("Primary Key entered: " + InitialParams.PrimaryKey);
                 }
+
+                //
+                if (!System.String.IsNullOrEmpty(listArguments[7]))
+                {
+                    InitialParams.DataSourcePathInADLS = listArguments[7].ToString();
+                    Console.WriteLine("Data Source root path entered: " + InitialParams.DataSourcePathInADLS);
+                }
+
+                if (!System.String.IsNullOrEmpty(listArguments[8]))
+                {
+                    InitialParams.TablePathInADLS = listArguments[8].ToString();
+                    Console.WriteLine("Table path entered: " + InitialParams.TablePathInADLS);
+                }
+
+                if (!System.String.IsNullOrEmpty(listArguments[9]))
+                {
+                    InitialParams.Environment = listArguments[9].ToString();
+                    Console.WriteLine("Environment entered: " + InitialParams.Environment);
+                }
+
             }
             catch (IndexOutOfRangeException ex)
             {

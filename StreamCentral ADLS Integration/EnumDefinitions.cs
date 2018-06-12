@@ -6,10 +6,6 @@ using System.Threading.Tasks;
 
 namespace StreamCentral.ADLSIntegration
 {
-    class EnumDefinitions
-    {
-    }
-
     public enum CopyOnPremSQLToADLAType
     {
         Transactional,
@@ -29,6 +25,14 @@ namespace StreamCentral.ADLSIntegration
     {
         ExactMatchSource,
         SearchTextMatchSource
+    }
+
+    public enum IsHeaderOrDataType
+    {
+        //This is for header deployment
+        H,
+        //This is for data deployment
+        D
     }
 
 }
