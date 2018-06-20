@@ -355,6 +355,12 @@ namespace StreamCentral.ADLSIntegration
 
             try
             {
+                if(client == null)
+                {
+                    client = CreateManagementClientInstance();
+                }
+
+
                 client.Datasets.CreateOrUpdate(resourceGroupName, dataFactoryName,
                 new DatasetCreateOrUpdateParameters()
                 {
@@ -543,7 +549,11 @@ namespace StreamCentral.ADLSIntegration
                 PipelineActivePeriodEndTime = recordDateUTC.AddYears(100);
                 mode = PipelineMode.Scheduled;
             }
-         
+
+            if (client == null)
+            {
+                client = CreateManagementClientInstance();
+            }
 
             Activity activityInPipeline = new Activity()
             {
