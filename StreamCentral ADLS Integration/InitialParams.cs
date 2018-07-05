@@ -23,7 +23,9 @@ namespace StreamCentral.ADLSIntegration
 
         private static string _filterDateTimeField = String.Empty;
 
-        private static string _filterDateTimeInterval = String.Empty;
+        private static string _actFrequencyType = String.Empty;
+
+        private static string _actFrequencyInterval = String.Empty;
 
         private static string _deployCriteria = String.Empty;
 
@@ -79,10 +81,16 @@ namespace StreamCentral.ADLSIntegration
             set { _filterDateTimeField = value; }
         }
 
-        public static string FilterDateTimeInterval
+        public static string ActivityFrequencyType
         {
-            get { return _filterDateTimeInterval; }
-            set { _filterDateTimeInterval = value; }
+            get { return _actFrequencyType; }
+            set { _actFrequencyType = value; }
+        }
+
+        public static string ActivityFrequencyInterval
+        {
+            get { return _actFrequencyInterval; }
+            set { _actFrequencyInterval = value; }
         }
 
         public static string DeployCriteria
@@ -120,7 +128,7 @@ namespace StreamCentral.ADLSIntegration
             get
             {
 
-                return (String.IsNullOrEmpty(_dataSourcePathInADLS)) ? _dataSourceName : _dataSourcePathInADLS;               
+                return (String.IsNullOrEmpty(_dataSourcePathInADLS)) ? Utils.GetdataSourceType(TableName) : _dataSourcePathInADLS;               
             }
             set
             {

@@ -11,11 +11,18 @@ namespace StreamCentral.ADLSIntegration
     /// </summary>
     class Program
     {
+
+        private static int _currArgIndex = 0;
+
+        private static string[] argList;
+
        static void Main(string[] args)
         {
             try
             {
-                LoadCommandLineArgs(args);
+                argList = args;
+
+                LoadCommandLineArgs();
                 //Call Method: Create Data Sets, Pipelines for all structures qualified for criteria.
 
                 if (InitialParams.DeployCriteria.Equals("search"))
@@ -29,31 +36,24 @@ namespace StreamCentral.ADLSIntegration
                     ADFOperations.DeployADFDataSetsAndPipelines(searchText);
                 }
 
-                //ADFOperations.DeployADFDataSetsAndPipelines(InitialParams.DataSourceName,
-                //    InitialParams.TableName, InitialParams.FolderPath, InitialParams.FilterDateTimeField, InitialParams.FilterDateTimeInterval, CopyOnPremSQLToADLAType.All);
+                ADFOperations.DeployADFDataSetsAndPipelines(CopyOnPremSQLToADLAType.All);
 
-                //ADFOperations.DeployADFDataSetsAndPipelines(InitialParams.DataSourceName,
-                //    InitialParams.TableName, InitialParams.FolderPath, InitialParams.FilterDateTimeField, InitialParams.FilterDateTimeInterval, CopyOnPremSQLToADLAType.Transactional);
+                //ADFOperations.DeployADFDataSetsAndPipelines(CopyOnPremSQLToADLAType.Transactional);
 
-                //ADFOperations.DeployADFDataSetsAndPipelines(InitialParams.DataSourceName,
-                //    InitialParams.TableName, InitialParams.FolderPath, InitialParams.FilterDateTimeField, InitialParams.FilterDateTimeInterval, CopyOnPremSQLToADLAType.Distinct);
-
-                ADFOperations.DeployADFDataSetsAndPipelines(InitialParams.DataSourceName,
-                    InitialParams.TableName, InitialParams.FolderPath, InitialParams.FilterDateTimeField, InitialParams.FilterDateTimeInterval, CopyOnPremSQLToADLAType.Flattened);
-
-
+                //ADFOperations.DeployADFDataSetsAndPipelines(CopyOnPremSQLToADLAType.Distinct);
+                
                 //ADFOperations.DeployADFDataSetsAndPipelines(_dataSourceName,
                 //_tableName, _folderPath, _filterDateTimeField, _filterDateTimeInterval, CopyDataType.Distinct, "sys_id");
 
                 //Console.WriteLine("Delete status of Input Data sets: Start ");
 
-                //ADFOperations.DeleteDatasets("SC_DSO_H_DSCoinsSQLDataTest");
+                //ADFOperations.DeleteDatasets("SC_DSO_H_POCSharePoint");
 
-                //ADFOperations.DeleteDatasets("SC_DSO_D_DSCoinsSQLDataTest");
+                //ADFOperations.DeleteDatasets("SC_DSO_D_POCSharePoint");
 
-                //ADFOperations.DeleteDatasets("SC_DSI_H_DSCoinsSQLDataTest");
+                ////// ADFOperations.DeleteDatasets("SC_DSI_H_DSSnowdropLive");
 
-                //ADFOperations.DeleteDatasets("SC_DSI_D_DSCoinsSQLDataTest");
+                ////// ADFOperations.DeleteDatasets("SC_DSI_D_DSSnowdropLive");
 
                 //Console.WriteLine("Delete status of Input Data sets : Success");
 
@@ -81,19 +81,14 @@ namespace StreamCentral.ADLSIntegration
         /// in the Application Static Variables.
         /// </summary>
         /// <param name="args"></param>
-        static void LoadCommandLineArgs(String[] args)
+        static void LoadCommandLineArgs()
         {
             try
-            {
-                String[] listArguments = args;
-
+            {   
                 try
                 {
-                    if (!System.String.IsNullOrEmpty(listArguments[0]))
-                    {
-                        InitialParams.DeployCriteria = listArguments[0].ToString();
-                        Console.WriteLine(InitialParams.DeployCriteria);
-                    }
+                      InitialParams.DeployCriteria = ReadNextArgumentValue();
+                      Console.WriteLine(InitialParams.DeployCriteria);
                 }
                 catch (IndexOutOfRangeException ex)
                 {
@@ -105,9 +100,9 @@ namespace StreamCentral.ADLSIntegration
                 {
                     if(InitialParams.DeployCriteria.Equals("search"))
                     {
-                        InitialParams.SearchText01 = listArguments[1].ToString();
-                        InitialParams.SearchText02 = listArguments[2].ToString();
-                        InitialParams.SearchText03 = listArguments[3].ToString();
+                        InitialParams.SearchText01 = ReadNextArgumentValue();
+                        InitialParams.SearchText02 = ReadNextArgumentValue();
+                        InitialParams.SearchText03 = ReadNextArgumentValue();
                         return;
                     }
                 } catch(Exception ex)
@@ -117,77 +112,136 @@ namespace StreamCentral.ADLSIntegration
 
                 //Specify the Data Source Name
                 try
-                {
-                    if (!System.String.IsNullOrEmpty(listArguments[1]))
-                    {
-                        InitialParams.DataSourceName = listArguments[1].ToString();
+                {  
+                        InitialParams.DataSourceName = ReadNextArgumentValue();
                         Console.WriteLine("Data Source Name: " + InitialParams.DataSourceName);
-                    }
+                    
                 }catch(IndexOutOfRangeException ex)
                 {
                     Console.WriteLine("Please provide the command line arguments to proceed: dataSourceName, tableName, folderPath, filterDateTimeField, filterDateTimeInterval");                    
                 }
 
                 //specify the name of the table for which the ETL to be configured.
-                if (!System.String.IsNullOrEmpty(listArguments[2]))
+                try
                 {
-                    InitialParams.TableName = listArguments[2].ToString();
+                    InitialParams.TableName = ReadNextArgumentValue();
                     Console.WriteLine("Table Name entered: " + InitialParams.TableName);
                 }
-                
-                //specify the root path of ADLS
-                if (!System.String.IsNullOrEmpty(listArguments[3]))
+                catch (IndexOutOfRangeException ex)
                 {
-                    InitialParams.FolderPath = listArguments[3].ToString();
+                    Console.WriteLine("Please provide the command line arguments to proceed: dataSourceName, tableName, folderPath, filterDateTimeField, filterDateTimeInterval");
+                }
+
+                //specify the root path of ADLS
+                try
+                {
+                    InitialParams.FolderPath = ReadNextArgumentValue();
                     Console.WriteLine("Folder Path entered: " + InitialParams.FolderPath);
+                }
+                catch (IndexOutOfRangeException ex)
+                {
+                    Console.WriteLine("Please provide the command line arguments to proceed: dataSourceName, tableName, folderPath, filterDateTimeField, filterDateTimeInterval");
                 }
 
                 //Used to specify the time interval field that shall be used to slice the data in ETL process. 
                 //RECORDDATEUTC will become otherwise the default time interval.
-                if (!System.String.IsNullOrEmpty(listArguments[4]))
+                try
                 {
-                    InitialParams.FilterDateTimeField = listArguments[4].ToString();
+                    InitialParams.FilterDateTimeField = ReadNextArgumentValue();
                     Console.WriteLine("Filter Time Field entered: "+ InitialParams.FilterDateTimeField);
+                }catch (IndexOutOfRangeException ex)
+                {
+                    Console.WriteLine("Please provide the command line arguments to proceed: dataSourceName, tableName, folderPath, filterDateTimeField, filterDateTimeInterval");
                 }
 
                 //Used to configure the schedule time interval for the Pipeline to run the activity
-                if (!System.String.IsNullOrEmpty(listArguments[5]))
+                try
                 {
-                    InitialParams.FilterDateTimeInterval = listArguments[5].ToString();
-                    Console.WriteLine("Filter Date Interval for schedule entered:  " + InitialParams.FilterDateTimeInterval);
+                    InitialParams.ActivityFrequencyType = ReadNextArgumentValue();
+                    Console.WriteLine("Frequency Type for scheduling Activity entered:  " + InitialParams.ActivityFrequencyType);
+                }
+                catch (IndexOutOfRangeException ex)
+                {
+                    Console.WriteLine("Please provide the command line arguments to proceed: dataSourceName, tableName, folderPath, filterDateTimeField, filterDateTimeInterval");
+                }
+
+                //Used to configure the schedule time interval for the Pipeline to run the activity
+                try
+                {
+                    InitialParams.ActivityFrequencyInterval = ReadNextArgumentValue();
+                    Console.WriteLine("Frequency Interval for scheduling Activity entered:  " + InitialParams.ActivityFrequencyInterval);
+                }
+                catch (IndexOutOfRangeException ex)
+                {
+                    Console.WriteLine("Please provide the command line arguments to proceed: dataSourceName, tableName, folderPath, filterDateTimeField, filterDateTimeInterval");
                 }
 
                 //used for ETL of distinct records.
-                if (!System.String.IsNullOrEmpty(listArguments[6]))
+                try
                 {
-                    InitialParams.PrimaryKey = listArguments[6].ToString();
+                    InitialParams.PrimaryKey = ReadNextArgumentValue();
                     Console.WriteLine("Primary Key entered: " + InitialParams.PrimaryKey);
                 }
-
-                //
-                if (!System.String.IsNullOrEmpty(listArguments[7]))
+                catch (IndexOutOfRangeException ex)
                 {
-                    InitialParams.DataSourcePathInADLS = listArguments[7].ToString();
+                    Console.WriteLine("Please provide the command line arguments to proceed: dataSourceName, tableName, folderPath, filterDateTimeField, filterDateTimeInterval");
+                }
+
+                try
+                {
+                    InitialParams.DataSourcePathInADLS = ReadNextArgumentValue();
                     Console.WriteLine("Data Source root path entered: " + InitialParams.DataSourcePathInADLS);
                 }
-
-                if (!System.String.IsNullOrEmpty(listArguments[8]))
+                catch (IndexOutOfRangeException ex)
                 {
-                    InitialParams.TablePathInADLS = listArguments[8].ToString();
+                    Console.WriteLine("Please provide the command line arguments to proceed: dataSourceName, tableName, folderPath, filterDateTimeField, filterDateTimeInterval");
+                }
+
+                try
+                {
+                    InitialParams.TablePathInADLS = ReadNextArgumentValue();
                     Console.WriteLine("Table path entered: " + InitialParams.TablePathInADLS);
                 }
-
-                if (!System.String.IsNullOrEmpty(listArguments[9]))
+                catch (IndexOutOfRangeException ex)
                 {
-                    InitialParams.Environment = listArguments[9].ToString();
+                    Console.WriteLine("Please provide the command line arguments to proceed: dataSourceName, tableName, folderPath, filterDateTimeField, filterDateTimeInterval");
+                }
+                 
+
+                try
+                {
+                    InitialParams.Environment = ReadNextArgumentValue();
                     Console.WriteLine("Environment entered: " + InitialParams.Environment);
                 }
+                catch (IndexOutOfRangeException ex)
+                {
+                    Console.WriteLine("Please provide the command line arguments to proceed: dataSourceName, tableName, folderPath, filterDateTimeField, filterDateTimeInterval");
+                }
 
+                _currArgIndex = 0;
             }
             catch (IndexOutOfRangeException ex)
             {
                 Console.WriteLine("Few arguments are not provided : {0}", ex.Message);                
             }
+        }
+
+        public static string ReadNextArgumentValue()
+        {
+            int nxtArgIndex = _currArgIndex;
+            string arg = string.Empty;
+
+            try
+            {
+                arg = argList[nxtArgIndex];
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Unable to read the argument:" + ex.Message);
+            }
+
+            _currArgIndex = nxtArgIndex+1;
+            return arg;
         }
     }
 }

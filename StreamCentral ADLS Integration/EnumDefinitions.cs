@@ -12,7 +12,9 @@ namespace StreamCentral.ADLSIntegration
         Distinct,
         All,
         LastIteration,
-        Flattened
+        Flattened,
+        NinethDay,
+        FifteenthDay
     }
 
     public enum IsPipelineStartModePaused
@@ -34,5 +36,4 @@ namespace StreamCentral.ADLSIntegration
         //This is for data deployment
         D
     }
-
 }

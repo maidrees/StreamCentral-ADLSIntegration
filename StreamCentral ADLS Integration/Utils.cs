@@ -28,14 +28,14 @@ namespace StreamCentral.ADLSIntegration
             {
                 dsType = "SnowdropTrain";
             }
-            else if (tableName.ToLower().Contains("sharepointlist") || tableName.ToLower().Contains("sharepoint"))
+            else if (tableName.ToLower().Contains("sharepoint"))
             {
-                dsType = "SharePointOnlineList";
+                dsType = "SharePointOnline";
             }
-            else if (tableName.ToLower().Contains("sharepointonlinedoc") || tableName.ToLower().Contains("sharepointdoc"))
-            {
-                dsType = "SharePointOnlineDocuments";
-            }
+            //else if (tableName.ToLower().Contains("sharepointonlinedoc") || tableName.ToLower().Contains("sharepointdoc"))
+            //{
+            //    dsType = "SharePointOnlineDocuments";
+            //}
             else if (tableName.ToLower().Contains("servicenow"))
             {
                 dsType = "ServiceNow";
