@@ -206,7 +206,16 @@ namespace StreamCentral.ADLSIntegration
                 {
                     Console.WriteLine("Please provide the command line arguments to proceed: dataSourceName, tableName, folderPath, filterDateTimeField, filterDateTimeInterval");
                 }
-                 
+
+                try
+                {
+                    InitialParams. = ReadNextArgumentValue();
+                    Console.WriteLine("Environment entered: " + InitialParams.Environment);
+                }
+                catch (IndexOutOfRangeException ex)
+                {
+                    Console.WriteLine("Please provide the command line arguments to proceed: dataSourceName, tableName, folderPath, filterDateTimeField, filterDateTimeInterval");
+                }
 
                 try
                 {
