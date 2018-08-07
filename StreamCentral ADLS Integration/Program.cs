@@ -41,15 +41,20 @@ namespace StreamCentral.ADLSIntegration
                 //ADFOperations.DeployADFDataSetsAndPipelines(CopyOnPremSQLToADLAType.Transactional);
 
                 //ADFOperations.DeployADFDataSetsAndPipelines(CopyOnPremSQLToADLAType.Distinct);
-                
+
                 //ADFOperations.DeployADFDataSetsAndPipelines(_dataSourceName,
                 //_tableName, _folderPath, _filterDateTimeField, _filterDateTimeInterval, CopyDataType.Distinct, "sys_id");
 
                 //Console.WriteLine("Delete status of Input Data sets: Start ");
 
-                //ADFOperations.DeleteDatasets("SC_DSO_H_POCSharePoint");
+                ////ADFOperations.DeleteDatasets("SC_DSI_D_DSSnowdropLive");
 
-                //ADFOperations.DeleteDatasets("SC_DSO_D_POCSharePoint");
+                ////ADFOperations.DeleteDatasets("SC_DSI_H_DSSnowdropLive");
+
+                ////ADFOperations.DeleteDatasets("SC_DSO_D_DSSnowdropLive");
+
+                ////ADFOperations.DeleteDatasets("SC_DSO_H_DSSnowdropLive");
+
 
                 ////// ADFOperations.DeleteDatasets("SC_DSI_H_DSSnowdropLive");
 
@@ -205,17 +210,7 @@ namespace StreamCentral.ADLSIntegration
                 catch (IndexOutOfRangeException ex)
                 {
                     Console.WriteLine("Please provide the command line arguments to proceed: dataSourceName, tableName, folderPath, filterDateTimeField, filterDateTimeInterval");
-                }
-
-                try
-                {
-                    InitialParams. = ReadNextArgumentValue();
-                    Console.WriteLine("Environment entered: " + InitialParams.Environment);
-                }
-                catch (IndexOutOfRangeException ex)
-                {
-                    Console.WriteLine("Please provide the command line arguments to proceed: dataSourceName, tableName, folderPath, filterDateTimeField, filterDateTimeInterval");
-                }
+                }             
 
                 try
                 {
