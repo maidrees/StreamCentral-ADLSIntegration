@@ -150,7 +150,7 @@ namespace StreamCentral.ADLSIntegration
                 string outDataSetName =String.Format("SC_DSO_H_{0}",InOutDataSetNameRef);
                 string pipelineName = String.Format("SC_PL01_{0}_H_{1}_{2}", InitialParams.Environment, InitialParams.DataSourceName, cpType.ToString());                
                 string fileName = "Header_" + InOutDataSetNameRef;
-                string folderpath = String.Format("{0}/DL-{1}/{2}/{3}", InitialParams.FolderPath,
+                string folderpath = String.Format("{0}/DL-{1}/{2}/{3}/", InitialParams.FolderPath,
                     InitialParams.DataSourcePathInADLS, InitialParams.TablePathInADLS, InOutDataSetNameRef);
 
                 DeployDatasetAndPipelines(pipelineName, inDataSetName, outDataSetName, tableName,
@@ -385,7 +385,7 @@ namespace StreamCentral.ADLSIntegration
                             {
                                 ObjDataSetAvailability.Frequency = SchedulePeriod.Day;
                                 ObjDataSetAvailability.Interval = 1;
-                                ObjDataSetAvailability.Offset = TimeSpan.FromHours(Convert.ToDouble(InitialParams.ActivityFrequencyInterval));
+                               // ObjDataSetAvailability.Offset = TimeSpan.FromHours(Convert.ToDouble(InitialParams.ActivityFrequencyInterval));
                                 ObjDataSetAvailability.Style = SchedulerStyle.StartOfInterval; break;
                             }
                      
@@ -619,7 +619,7 @@ namespace StreamCentral.ADLSIntegration
                         {
                             objActivityScheduler.Frequency = SchedulePeriod.Day;
                             objActivityScheduler.Interval = 1;
-                            objActivityScheduler.Offset = TimeSpan.FromHours(Convert.ToDouble(InitialParams.ActivityFrequencyInterval));
+                            //objActivityScheduler.Offset = TimeSpan.FromHours(Convert.ToDouble(InitialParams.ActivityFrequencyInterval));
                             objActivityScheduler.Style = SchedulerStyle.StartOfInterval; break;
                         }
 
@@ -647,7 +647,7 @@ namespace StreamCentral.ADLSIntegration
 
             Activity activityInPipeline = new Activity()
             {
-                Name = "Act_" + dsInput,
+                Name = "Act_" + InitialParams.Environment + dsInput,
 
                 Inputs = new List<ActivityInput>() { new ActivityInput() { Name = dsInput } },
 
