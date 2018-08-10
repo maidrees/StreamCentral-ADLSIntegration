@@ -146,11 +146,11 @@ namespace StreamCentral.ADLSIntegration
 
                 Console.WriteLine("Deploying data sets and pipelines for Headers");
 
-                string inDataSetName = String.Format("SC_DSI_H_{0}",InOutDataSetNameRef);                    
-                string outDataSetName =String.Format("SC_DSO_H_{0}",InOutDataSetNameRef);
+                string inDataSetName = String.Format("SC_DSI_H_{0}_{1}",InitialParams.Environment,InOutDataSetNameRef);                    
+                string outDataSetName =String.Format("SC_DSO_H_{0}_{1}",InitialParams.Environment, InOutDataSetNameRef);
                 string pipelineName = String.Format("SC_PL01_{0}_H_{1}_{2}", InitialParams.Environment, InitialParams.DataSourceName, cpType.ToString());                
                 string fileName = "Header_" + InOutDataSetNameRef;
-                string folderpath = String.Format("{0}/DL-{1}/{2}/{3}/", InitialParams.FolderPath,
+                string folderpath = String.Format("{0}/DL-{1}/{2}/{3}", InitialParams.FolderPath,
                     InitialParams.DataSourcePathInADLS, InitialParams.TablePathInADLS, InOutDataSetNameRef);
 
                 DeployDatasetAndPipelines(pipelineName, inDataSetName, outDataSetName, tableName,
@@ -164,8 +164,8 @@ namespace StreamCentral.ADLSIntegration
 
                 Console.WriteLine("Deploying data sets and pipelines for data");
 
-                inDataSetName = String.Format("SC_DSI_D_{0}",InOutDataSetNameRef);
-                outDataSetName = String.Format("SC_DSO_D_{0}", InOutDataSetNameRef);
+                inDataSetName = String.Format("SC_DSI_D_{0}_{1}",InitialParams.Environment,InOutDataSetNameRef);
+                outDataSetName = String.Format("SC_DSO_D_{0}_{1}", InitialParams.Environment,InOutDataSetNameRef);
                 pipelineName = String.Format("SC_PL01_{0}_D_{1}_{2}",InitialParams.Environment, InitialParams.DataSourceName, cpType.ToString());
 
                 if(cpType.Equals(CopyOnPremSQLToADLAType.Distinct) || cpType.Equals(CopyOnPremSQLToADLAType.All) || cpType.Equals(CopyOnPremSQLToADLAType.Flattened))

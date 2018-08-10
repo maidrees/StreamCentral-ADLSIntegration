@@ -39,7 +39,7 @@ namespace StreamCentral.ADLSIntegration
 
         private static string _environment = String.Empty;
 
-        private static CopyOnPremSQLToADLAType _copyOnPremToADLAType = CopyOnPremSQLToADLAType.All;
+        private static string _copyOnPremToADLAType = String.Empty;
 
         public static string FilterDistinctField
         {
@@ -169,26 +169,12 @@ namespace StreamCentral.ADLSIntegration
         {
             get
             {
-                return CopyOnPremSQLToADLAType.All.ToString();
+                return _copyOnPremToADLAType;
             }
             set
             {
-                switch(value)
-                {
-                    case "All":
-                        _copyOnPremToADLAType = CopyOnPremSQLToADLAType.All;
-                        break;
-                    case "Transactional":
-                        _copyOnPremToADLAType = CopyOnPremSQLToADLAType.Transactional;
-                        break;
-                    case "Distinct":
-                        _copyOnPremToADLAType = CopyOnPremSQLToADLAType.Distinct;
-                        break;
-                    case "Flattened":
-                        _copyOnPremToADLAType = CopyOnPremSQLToADLAType.Flattened;
-                        break;
-                }
-            }
+                _copyOnPremToADLAType = value;
+            }                
         }
 
         public static string Environment

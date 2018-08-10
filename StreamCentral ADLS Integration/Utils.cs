@@ -11,8 +11,11 @@ namespace StreamCentral.ADLSIntegration
         public static string GetdataSourceType(string tableName)
         {
             string dsType = string.Empty;
-
-            if (tableName.ToLower().Contains("seneca") || tableName.ToLower().Contains("gatehousesuite"))
+            if (tableName.ToLower().Contains("donseed") || tableName.ToLower().Contains("seed"))
+            {
+                dsType = "Donseed";
+            }
+            else if (tableName.ToLower().Contains("seneca") || tableName.ToLower().Contains("gatehousesuite"))
             {
                 dsType = "GateHouseSeneca";
             }
