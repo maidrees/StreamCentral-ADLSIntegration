@@ -736,68 +736,75 @@ namespace StreamCentral.ADLSIntegration
         
         public static List<DataElement> GenerateStructure(string tableName)
         {
-            List<DataElement> InOutParams = new List<DataElement>();
-
-            //// Look for the name in the connectionStrings section.
-            SqlConnection connect = SQLUtils.SQLConnect();
-
-            // SqlCommand cmd = SQLUtils.GenerateStoredProcCommand("SCDMTableSchemaProc", tableName);
-            SqlCommand cmd = new SqlCommand(ConfigurationSettings.AppSettings["SCDMTableSchemaProc"], connect);
-            cmd.CommandType = CommandType.StoredProcedure;
-            cmd.Parameters.Add(new SqlParameter("@TableName", tableName));
-
-            if (connect.State == ConnectionState.Closed)
+            try
             {
-                connect.Open();
-            }
+                List<DataElement> InOutParams = new List<DataElement>();
 
-            using (var reader = cmd.ExecuteReader())
-            {
-                if (reader.HasRows)
+                //// Look for the name in the connectionStrings section.
+                SqlConnection connect = SQLUtils.SQLConnect();
+
+                // SqlCommand cmd = SQLUtils.GenerateStoredProcCommand("SCDMTableSchemaProc", tableName);
+                SqlCommand cmd = new SqlCommand(ConfigurationSettings.AppSettings["SCDMTableSchemaProc"], connect);
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.Add(new SqlParameter("@TableName", tableName));
+
+                if (connect.State == ConnectionState.Closed)
                 {
-                    while (reader.Read())
-                    {
-                        var name = reader.GetString(0);
-                        var type = reader.GetString(1);
-
-                        if (!(name == "RecordId" || name == "Seq" || name == "Call_UID" || name == "CreatedBy" ||
-                            name == "CreatedDate" || name == "ModifiedBy" || name == "ModifiedDate" ||
-                            name == "LOCATIONDIMENSIONID" || name == "EntityId" || name == "EntityLocationId" ||
-                            name == "operating_id" || name == "source_id"))
-                        {
-
-                            //converting SQL Server datatypes to ADF data types
-                            switch (type)
-                            {
-                                case "varchar":
-                                    type = "String";
-                                    break;
-                                case "nvarchar":
-                                    type = "String";
-                                    break;
-                                case "int":
-                                    type = "Int32";
-                                    break;
-                                case "bigint":
-                                    type = "Int32";
-                                    break;
-                                case "datetime":
-                                    type = "DateTime";
-                                    break;                                
-                            }
-
-                            InOutParams.Add(new DataElement
-                            {
-                                Name = name,
-                                Type = type
-                            });
-                        }
-                    }
-                    reader.Close();
-                    connect.Close();
+                    connect.Open();
                 }
+
+                using (var reader = cmd.ExecuteReader())
+                {
+                    if (reader.HasRows)
+                    {
+                        while (reader.Read())
+                        {
+                            var name = reader.GetString(0);
+                            var type = reader.GetString(1);
+
+                            if (!(name == "RecordId" || name == "Seq" || name == "Call_UID" || name == "CreatedBy" ||
+                                name == "CreatedDate" || name == "ModifiedBy" || name == "ModifiedDate" ||
+                                name == "LOCATIONDIMENSIONID" || name == "EntityId" || name == "EntityLocationId" ||
+                                name == "operating_id" || name == "source_id"))
+                            {
+
+                                //converting SQL Server datatypes to ADF data types
+                                switch (type)
+                                {
+                                    case "varchar":
+                                        type = "String";
+                                        break;
+                                    case "nvarchar":
+                                        type = "String";
+                                        break;
+                                    case "int":
+                                        type = "Int32";
+                                        break;
+                                    case "bigint":
+                                        type = "Int32";
+                                        break;
+                                    case "datetime":
+                                        type = "DateTime";
+                                        break;
+                                }
+
+                                InOutParams.Add(new DataElement
+                                {
+                                    Name = name,
+                                    Type = type
+                                });
+                            }
+                        }
+                        reader.Close();
+                        connect.Close();
+                    }
+                }
+                return InOutParams;
             }
-            return InOutParams;
+            catch(Exception ex)
+            {
+                throw ex;
+            }
         }
 
         
