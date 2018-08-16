@@ -58,24 +58,31 @@ namespace StreamCentral.ADLSIntegration
                     }
                 }
 
-                if(InitialParams.DeployCriteria.Equals("delete"))
-                {
-                    Console.WriteLine("Delete status of Input Data sets: Start ");
+                //if (InitialParams.DeployCriteria.Equals("delete"))
+                //{
+                //    Console.WriteLine("Delete status of Input Data sets: Start ");
 
-                    ADFOperations.DeleteDatasets("SC_DSO_D_DSSnowdropLive");
+                //    ADFOperations.DeleteDatasets("SC_DSO_D_DSSnowdropLive");
 
-                    Console.WriteLine("Deleted Input Data set: End ");
+                //    Console.WriteLine("Deleted Input Data set: End ");
 
-                    Console.WriteLine("Delete status of Output Data sets: Start ");
+                //    Console.WriteLine("Delete status of Output Data sets: Start ");
 
-                    ADFOperations.DeleteDatasets("SC_DSO_D_DSSnowdropLive");
+                //    ADFOperations.DeleteDatasets("SC_DSO_D_DSSnowdropLive");
 
-                    Console.WriteLine("Deleted Output Data set: End ");
+                //    Console.WriteLine("Deleted Output Data set: End ");
 
-                }
+                //}
 
-                ////ADFOperations.DeleteDatasets("SC_DSI_H_DSSnowdropLive");
-                                
+                //ADFOperations.DeletePipelines("SC_PL01_H_PreProd_");
+                //ADFOperations.DeletePipelines("SC_PL01_D_PreProd");
+
+                //ADFOperations.DeleteDatasets("SC_DSO_D_PreProd_");
+                //ADFOperations.DeleteDatasets("SC_DSO_H_PreProd_");
+                //ADFOperations.DeleteDatasets("SC_DSI_H_PreProd_");
+                //ADFOperations.DeleteDatasets("SC_DSI_D_PreProd_");
+
+
                 Console.WriteLine("Completed the process of deploying ADF in azure");
                 Console.ReadLine();
             }
@@ -234,6 +241,17 @@ namespace StreamCentral.ADLSIntegration
 
                     try
                     {
+                        InitialParams.PipelineScheduleOffset = ReadNextArgumentValue();
+                        Console.WriteLine("Pipeline scheduling offset entered: " + InitialParams.PipelineScheduleOffset);
+                    }
+                    catch (IndexOutOfRangeException ex)
+                    {
+                        Console.WriteLine("Please provide the command line arguments to proceed: dataSourceName, tableName, folderPath, filterDateTimeField, filterDateTimeInterval");
+                    }
+
+
+                    try
+                    {
                         InitialParams.DataSourcePathInADLS = Utils.GetdataSourceType(InitialParams.DataSourceName);
                         Console.WriteLine("Data Source root path entered: " + InitialParams.DataSourcePathInADLS);
                     }
@@ -241,6 +259,8 @@ namespace StreamCentral.ADLSIntegration
                     {
                         Console.WriteLine("Please provide the command line arguments to proceed: dataSourceName, tableName, folderPath, filterDateTimeField, filterDateTimeInterval");
                     }
+
+
                 }
 
                 if(InitialParams.DeployCriteria.Equals("delete"))

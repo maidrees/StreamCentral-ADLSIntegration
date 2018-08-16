@@ -13,7 +13,7 @@ namespace StreamCentral.ADLSIntegration
             string dsType = string.Empty;
             if (tableName.ToLower().Contains("donseed") || tableName.ToLower().Contains("seed"))
             {
-                dsType = "Donseed";
+                dsType = "DonSeed";
             }
             else if (tableName.ToLower().Contains("seneca") || tableName.ToLower().Contains("gatehousesuite"))
             {
@@ -71,6 +71,14 @@ namespace StreamCentral.ADLSIntegration
             return dsType;
         }
 
+        public static string GetFormattedFolderPath(string tableName)
+        {
+            string formattedFolderPath = String.Empty;
+
+            formattedFolderPath = tableName.Replace("[", String.Empty).Replace("]", String.Empty).
+                    Replace("FACT_", String.Empty).Replace("fact_", String.Empty).Replace("metricdetails", String.Empty);
+            return formattedFolderPath;
+        }
 
     }
 

@@ -41,6 +41,8 @@ namespace StreamCentral.ADLSIntegration
 
         private static string _copyOnPremToADLAType = String.Empty;
 
+        private static string _offset = String.Empty;
+
         public static string FilterDistinctField
         {
             get
@@ -149,13 +151,14 @@ namespace StreamCentral.ADLSIntegration
         {
             get
             {
-                return  (String.IsNullOrEmpty(_tablePathInADLS)) ? _tableName : _tablePathInADLS;                
+                //return  (String.IsNullOrEmpty(_tablePathInADLS)) ?  Utils.GetFormattedFolderPath(_tableName) : _tablePathInADLS;
+                return _tablePathInADLS;
             }
             set
             {
                 if (String.IsNullOrEmpty(value))
                 {
-                    _tablePathInADLS = _tableName;
+                    _tablePathInADLS = Utils.GetFormattedFolderPath(_tableName);
                 }
                 else
                 {
@@ -182,6 +185,20 @@ namespace StreamCentral.ADLSIntegration
             get { return _environment; }
             set { _environment = value; }
         }
-    }
 
+        public static string PipelineScheduleOffset
+        {
+            get { return _offset; }
+            set {
+                if (!String.IsNullOrEmpty(value))
+                {
+                    _offset = value;
+                }
+                else
+                {
+                    _offset = "03:00:00";
+                }
+            }
+        }
+    }
 }

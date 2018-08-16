@@ -128,6 +128,7 @@ namespace StreamCentral.ADLSIntegration
 
             
             string dateTimeField = (String.IsNullOrEmpty(InitialParams.FilterDateTimeField) ? "recorddateutc" : InitialParams.FilterDateTimeField);
+
             folderPath = (String.IsNullOrEmpty(folderPath) ? ConfigurationSettings.AppSettings["folderPath"] : folderPath);
             
 
@@ -139,24 +140,22 @@ namespace StreamCentral.ADLSIntegration
 
                 string sqlQuery = ADFOperations.GenerateADFPipelineSQLQuery(lstElements, dateTimeField, false, cpType);
 
-                string InOutDataSetNameRef = InitialParams.TableName.Replace("[", String.Empty).Replace("]", String.Empty).
-                    Replace("FACT_", String.Empty).Replace("metricdetails", String.Empty) + "_" + cpType.ToString();
-                  //  "_" + DateTime.Now.Year.ToString() + DateTime.Now.Month.ToString() + DateTime.Now.Day.ToString(); ;
-
-
+                string InOutDataSetNameRef = InitialParams.TablePathInADLS + "_" + cpType.ToString();
+                  
                 Console.WriteLine("Deploying data sets and pipelines for Headers");
 
                 string inDataSetName = String.Format("SC_DSI_H_{0}_{1}",InitialParams.Environment,InOutDataSetNameRef);                    
                 string outDataSetName =String.Format("SC_DSO_H_{0}_{1}",InitialParams.Environment, InOutDataSetNameRef);
-                string pipelineName = String.Format("SC_PL01_{0}_H_{1}_{2}", InitialParams.Environment, InitialParams.DataSourceName, cpType.ToString());                
+                string pipelineName = String.Format("SC_PL01_H_{0}_{1}", InitialParams.Environment,InOutDataSetNameRef);
+                string activityName = String.Format("Act_{0}_{1}", InitialParams.Environment, InOutDataSetNameRef);
                 string fileName = "Header_" + InOutDataSetNameRef;
                 string folderpath = String.Format("{0}/DL-{1}/{2}/{3}", InitialParams.FolderPath,
                     InitialParams.DataSourcePathInADLS, InitialParams.TablePathInADLS, InOutDataSetNameRef);
 
-                DeployDatasetAndPipelines(pipelineName, inDataSetName, outDataSetName, tableName,
+                DeployDatasetAndPipelines(pipelineName,activityName, inDataSetName, outDataSetName, tableName,
                     lstElements, fileName, folderpath, sqlQuery, firstDateTimeRecordInTable, false,cpType);
 
-                Console.WriteLine("Deployed data sets and pipelines for  headers");
+                Console.WriteLine("Deployed data sets and pipelines for headers");
                 
                 //re: OUTPUT DATASET - Prepare the SQL query required for pipeline to execute on Source System
 
@@ -166,9 +165,10 @@ namespace StreamCentral.ADLSIntegration
 
                 inDataSetName = String.Format("SC_DSI_D_{0}_{1}",InitialParams.Environment,InOutDataSetNameRef);
                 outDataSetName = String.Format("SC_DSO_D_{0}_{1}", InitialParams.Environment,InOutDataSetNameRef);
-                pipelineName = String.Format("SC_PL01_{0}_D_{1}_{2}",InitialParams.Environment, InitialParams.DataSourceName, cpType.ToString());
+                pipelineName = String.Format("SC_PL01_D_{0}_{1}",InitialParams.Environment,InOutDataSetNameRef);
+                activityName = String.Format("Act_{0}_{1}", InitialParams.Environment, InOutDataSetNameRef);
 
-                if(cpType.Equals(CopyOnPremSQLToADLAType.Distinct) || cpType.Equals(CopyOnPremSQLToADLAType.All) || cpType.Equals(CopyOnPremSQLToADLAType.Flattened))
+                if (cpType.Equals(CopyOnPremSQLToADLAType.Distinct) || cpType.Equals(CopyOnPremSQLToADLAType.All) || cpType.Equals(CopyOnPremSQLToADLAType.Flattened))
                 {
                     fileName = "Data_" + InOutDataSetNameRef;
                 }
@@ -177,9 +177,7 @@ namespace StreamCentral.ADLSIntegration
                     fileName = "Data_" + InOutDataSetNameRef + "-{year}-{month}-{day}";
                 }
                 
-
-                
-                DeployDatasetAndPipelines(pipelineName, inDataSetName, outDataSetName, tableName, 
+                DeployDatasetAndPipelines(pipelineName,activityName, inDataSetName, outDataSetName, tableName, 
                     lstElements, fileName, folderpath, sqlQuery, firstDateTimeRecordInTable, true,cpType);
 
                 Console.WriteLine("Deployed data sets and pipelines for data");
@@ -190,9 +188,9 @@ namespace StreamCentral.ADLSIntegration
             }
         }
 
-        public static void DeployDatasetAndPipelines(string pipelineName, string inDataSetName, string outDataSetName, 
+        public static void DeployDatasetAndPipelines(string pipelineName, string activityName, string inDataSetName, string outDataSetName, 
             string tableName, List<DataElement> lstElements, string fileName, string folderpath,
-             string sqlQuery, DateTime recorddateUTC, bool IsDataDeploy,CopyOnPremSQLToADLAType cpType)
+             string sqlQuery, DateTime recorddateUTC,bool IsDataDeploy,CopyOnPremSQLToADLAType cpType)
         {
             Dataset dsInput = null, dsOutput = null;
 
@@ -225,7 +223,7 @@ namespace StreamCentral.ADLSIntegration
 
             //Create Or Update Pipeline
             CreateOrUpdatePipeline(client, resourceGroupName, dataFactoryName, linkedServiceNameDestination, pipelineName,
-                inDataSetName, outDataSetName, sqlQuery, recorddateUTC, IsDataDeploy,cpType);
+                inDataSetName, outDataSetName, sqlQuery, recorddateUTC,activityName, IsDataDeploy,cpType);
 
         }
 
@@ -348,7 +346,7 @@ namespace StreamCentral.ADLSIntegration
            string linkedServiceName, string datasetDestination, string fileName, string folderPath, List<DataElement> InputParams, bool isDataDeploy)
         {
             // create output datasets
-            Console.WriteLine("Creating output dataset: ");
+            Console.WriteLine(String.Format("Creating output dataset - {0} ", datasetDestination));
 
             bool isFirstRowHeader = false;
             var period = SchedulePeriod.Day;
@@ -383,9 +381,13 @@ namespace StreamCentral.ADLSIntegration
                             }
                         case "Day":
                             {
+                                if (isDataDeploy)
+                                {
+                                    ObjDataSetAvailability.Offset = TimeSpan.FromHours(Convert.ToDouble(InitialParams.PipelineScheduleOffset));
+                                }
                                 ObjDataSetAvailability.Frequency = SchedulePeriod.Day;
                                 ObjDataSetAvailability.Interval = 1;
-                               // ObjDataSetAvailability.Offset = TimeSpan.FromHours(Convert.ToDouble(InitialParams.ActivityFrequencyInterval));
+                               //ObjDataSetAvailability.Offset = TimeSpan.FromHours(Convert.ToDouble(InitialParams.ActivityFrequencyInterval));
                                 ObjDataSetAvailability.Style = SchedulerStyle.StartOfInterval; break;
                             }
                      
@@ -402,7 +404,10 @@ namespace StreamCentral.ADLSIntegration
                 {
                     ObjDataSetAvailability.Frequency = SchedulePeriod.Day;
                     ObjDataSetAvailability.Interval = 1;
-                    ObjDataSetAvailability.Offset = TimeSpan.FromHours(1);
+                    if (isDataDeploy)
+                    {
+                        ObjDataSetAvailability.Offset = TimeSpan.FromHours(Convert.ToDouble(InitialParams.PipelineScheduleOffset));
+                    }
                     ObjDataSetAvailability.Style = SchedulerStyle.StartOfInterval;
                 }
 
@@ -484,7 +489,7 @@ namespace StreamCentral.ADLSIntegration
                 });
 
                 // created output datasets
-                Console.WriteLine("Created output dataset: ");
+                Console.WriteLine(String.Format("Created output dataset - {0} ", datasetDestination));
             }
             catch (InvalidOperationException invalidToken)
             {
@@ -581,7 +586,7 @@ namespace StreamCentral.ADLSIntegration
 
         public static void CreateOrUpdatePipeline(DataFactoryManagementClient client, string resourceGroupName, string dataFactoryName,
             string linkedServiceName, string pipelineName, string dsInput, string dsOutput, string sqlQuery,
-            DateTime recordDateUTC, bool isDataDeploy,CopyOnPremSQLToADLAType cpType)
+            DateTime recordDateUTC,string activityName, bool isDataDeploy,CopyOnPremSQLToADLAType cpType)
         {
             if(String.IsNullOrEmpty(sqlQuery))
             {
@@ -610,7 +615,7 @@ namespace StreamCentral.ADLSIntegration
 
                             objActivityScheduler.Frequency = SchedulePeriod.Month;
                             objActivityScheduler.Interval = 1;
-                            objActivityScheduler.Offset = TimeSpan.FromDays(Convert.ToDouble(InitialParams.ActivityFrequencyInterval));
+                            objActivityScheduler.Offset = TimeSpan.FromHours(Convert.ToDouble(InitialParams.PipelineScheduleOffset));
                             objActivityScheduler.Style = SchedulerStyle.StartOfInterval;
 
                             break;
@@ -619,7 +624,10 @@ namespace StreamCentral.ADLSIntegration
                         {
                             objActivityScheduler.Frequency = SchedulePeriod.Day;
                             objActivityScheduler.Interval = 1;
-                            //objActivityScheduler.Offset = TimeSpan.FromHours(Convert.ToDouble(InitialParams.ActivityFrequencyInterval));
+                            if (isDataDeploy)
+                            {
+                                objActivityScheduler.Offset = TimeSpan.FromHours(Convert.ToDouble(InitialParams.PipelineScheduleOffset));
+                            }
                             objActivityScheduler.Style = SchedulerStyle.StartOfInterval; break;
                         }
 
@@ -627,7 +635,7 @@ namespace StreamCentral.ADLSIntegration
                         {
                             objActivityScheduler.Frequency = SchedulePeriod.Hour;
                             objActivityScheduler.Interval = 1;
-                            objActivityScheduler.Offset = TimeSpan.FromMinutes(Convert.ToDouble(InitialParams.ActivityFrequencyInterval));
+                            objActivityScheduler.Offset = TimeSpan.FromMinutes(Convert.ToDouble(InitialParams.PipelineScheduleOffset));
                             objActivityScheduler.Style = SchedulerStyle.StartOfInterval; break;
                         }
                 }
@@ -636,7 +644,10 @@ namespace StreamCentral.ADLSIntegration
             {
                 objActivityScheduler.Frequency = SchedulePeriod.Day;
                 objActivityScheduler.Interval = 1;
-                objActivityScheduler.Offset = TimeSpan.FromHours(1);
+                if (isDataDeploy)
+                {
+                    objActivityScheduler.Offset = TimeSpan.FromHours(17);
+                }
                 objActivityScheduler.Style = SchedulerStyle.StartOfInterval; 
             }
 
@@ -647,7 +658,7 @@ namespace StreamCentral.ADLSIntegration
 
             Activity activityInPipeline = new Activity()
             {
-                Name = "Act_" + InitialParams.Environment + dsInput,
+                Name = activityName,
 
                 Inputs = new List<ActivityInput>() { new ActivityInput() { Name = dsInput } },
 
@@ -711,7 +722,7 @@ namespace StreamCentral.ADLSIntegration
                             Name = pipelineName,
                             Properties = new PipelineProperties()
                             {
-                                Description = "Demo Pipeline for data transfer from on-premise SC - SQL Server Datamart to Lake Store",
+                                Description = "Pipeline for data transfer from on-premise SC - SQL Server Datamart to Lake Store",
 
                                 Activities = new List<Activity>()
                                 {
@@ -721,7 +732,7 @@ namespace StreamCentral.ADLSIntegration
                                 // Initial value for pipeline's active period. With this, you won't need to set slice status
                                 Start = PipelineActivePeriodStartTime,
                                 End = PipelineActivePeriodEndTime,
-                                IsPaused = true,
+                                IsPaused = false,
                                 PipelineMode = mode,
                                 HubName = cgsHubName,
                                 ExpirationTime = TimeSpan.FromMinutes(0)

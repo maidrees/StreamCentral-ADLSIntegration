@@ -7,7 +7,7 @@
     <ProjectGuid>{93AF5BAB-5967-439C-81B0-2E82172133FB}</ProjectGuid>
     <OutputType>Exe</OutputType>
     <RootNamespace>StreamCentral.ADLSIntegration</RootNamespace>
-    <AssemblyName>StreamCentral.ADLSIntegration</AssemblyName>
+    <AssemblyName>StreamCentralADLSIntegration</AssemblyName>
     <TargetFrameworkVersion>v4.6.1</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
