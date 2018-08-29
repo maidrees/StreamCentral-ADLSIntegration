@@ -310,7 +310,9 @@ namespace StreamCentral.ADLSIntegration
                             {
                                 Frequency = "Day",
                                 Interval = 1,
-                            },
+                               Style = SchedulerStyle.StartOfInterval,
+                               Offset = TimeSpan.FromDays(Convert.ToDouble(InitialParams.ActivityFrequencyInterval))
+            },
 
                             Policy = new Policy()
                             {
@@ -594,154 +596,166 @@ namespace StreamCentral.ADLSIntegration
                 return;
             }
 
-            DateTime PipelineActivePeriodStartTime = DateTime.Now.Subtract(TimeSpan.FromDays(1000.00));
-            DateTime PipelineActivePeriodEndTime = PipelineActivePeriodStartTime;
-            Scheduler objActivityScheduler = new Scheduler();
-            string mode = PipelineMode.OneTime;
-            
-            if ((isDataDeploy))// && (!cpType.ToString().Equals(CopyOnPremSQLToADLAType.All.ToString())))
-            {
-                PipelineActivePeriodStartTime = recordDateUTC;
-                PipelineActivePeriodEndTime = recordDateUTC.AddYears(100);
-                mode = PipelineMode.Scheduled;
-            }
-
-            if (!String.IsNullOrEmpty(InitialParams.ActivityFrequencyType))
-            {
-                switch (InitialParams.ActivityFrequencyType)
-                {
-                    case "Month":
-                        {
-
-                            objActivityScheduler.Frequency = SchedulePeriod.Month;
-                            objActivityScheduler.Interval = 1;
-                            objActivityScheduler.Offset = TimeSpan.FromHours(Convert.ToDouble(InitialParams.PipelineScheduleOffset));
-                            objActivityScheduler.Style = SchedulerStyle.StartOfInterval;
-
-                            break;
-                        }
-                    case "Day":
-                        {
-                            objActivityScheduler.Frequency = SchedulePeriod.Day;
-                            objActivityScheduler.Interval = 1;
-                            if (isDataDeploy)
-                            {
-                                objActivityScheduler.Offset = TimeSpan.FromHours(Convert.ToDouble(InitialParams.PipelineScheduleOffset));
-                            }
-                            objActivityScheduler.Style = SchedulerStyle.StartOfInterval; break;
-                        }
-
-                    case "Hour":
-                        {
-                            objActivityScheduler.Frequency = SchedulePeriod.Hour;
-                            objActivityScheduler.Interval = 1;
-                            objActivityScheduler.Offset = TimeSpan.FromMinutes(Convert.ToDouble(InitialParams.PipelineScheduleOffset));
-                            objActivityScheduler.Style = SchedulerStyle.StartOfInterval; break;
-                        }
-                }
-            }
-            else
-            {
-                objActivityScheduler.Frequency = SchedulePeriod.Day;
-                objActivityScheduler.Interval = 1;
-                if (isDataDeploy)
-                {
-                    objActivityScheduler.Offset = TimeSpan.FromHours(17);
-                }
-                objActivityScheduler.Style = SchedulerStyle.StartOfInterval; 
-            }
-
-            if (client == null)
-            {
-                client = CreateManagementClientInstance();
-            }
-
-            Activity activityInPipeline = new Activity()
-            {
-                Name = activityName,
-
-                Inputs = new List<ActivityInput>() { new ActivityInput() { Name = dsInput } },
-
-                Outputs = new List<ActivityOutput>() { new ActivityOutput() { Name = dsOutput } },
-
-                TypeProperties = new CopyActivity()
-                {
-                    Source = new SqlSource() { SqlReaderQuery = sqlQuery },
-                    Sink = new AzureDataLakeStoreSink()
-                    {
-                        WriteBatchSize = 0,
-                        WriteBatchTimeout = TimeSpan.FromMinutes(0)
-                    }
-                },
-
-                Policy = new ActivityPolicy()
-                {
-                    Timeout = TimeSpan.FromMinutes(1.0),
-                    Concurrency = 1,
-                    ExecutionPriorityOrder = ExecutionPriorityOrder.NewestFirst,
-                    LongRetry = 0,
-                    LongRetryInterval = TimeSpan.FromMinutes(0.0),
-                    Retry = 3,
-                    Delay = TimeSpan.FromMinutes(0.0)
-                },
-                Scheduler = objActivityScheduler 
-            };
-
-            Pipeline pl = null;
-
             try
             {
-                PipelineGetResponse respPipelines = client.Pipelines.Get(resourceGroupName, dataFactoryName, pipelineName);
-                pl = respPipelines.Pipeline;
 
-                Console.WriteLine("updating existing pipeline " + pipelineName + " ... " + activityInPipeline.Name);
-                
-                pl.Properties.Activities.Add(activityInPipeline);
 
-                PipelineCreateOrUpdateParameters plParameters = new PipelineCreateOrUpdateParameters() { Pipeline = pl };
+                DateTime PipelineActivePeriodStartTime = DateTime.Now.Subtract(TimeSpan.FromDays(1000.00));
+                DateTime PipelineActivePeriodEndTime = PipelineActivePeriodStartTime;
+                Scheduler objActivityScheduler = new Scheduler();
+                string mode = PipelineMode.OneTime;
 
-                client.Pipelines.CreateOrUpdate(resourceGroupName, dataFactoryName, plParameters);
+                if ((isDataDeploy))// && (!cpType.ToString().Equals(CopyOnPremSQLToADLAType.All.ToString())))
+                {
+                    recordDateUTC.AddHours(3);
+                    PipelineActivePeriodStartTime = recordDateUTC;
+                    PipelineActivePeriodEndTime = recordDateUTC.AddYears(100);
+                    mode = PipelineMode.Scheduled;
+                }
 
-                Console.WriteLine("updated successfully existing pipeline: " + pipelineName + " ... " + activityInPipeline.Name);
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine("Unable to create or update pipeline " + ex.Message);
-            }
-
-            if (pl == null)
-            {
-                // Create a pipeline with a copy activity
-                Console.WriteLine("Creating new pipeline " + pipelineName + " ... " + activityInPipeline.Name);
-
-                client.Pipelines.CreateOrUpdate(resourceGroupName, dataFactoryName,
-                    new PipelineCreateOrUpdateParameters()
+                if (!String.IsNullOrEmpty(InitialParams.ActivityFrequencyType))
+                {
+                    switch (InitialParams.ActivityFrequencyType)
                     {
-                        Pipeline = new Pipeline()
-                        {
-                            Name = pipelineName,
-                            Properties = new PipelineProperties()
+                        case "Month":
                             {
-                                Description = "Pipeline for data transfer from on-premise SC - SQL Server Datamart to Lake Store",
 
-                                Activities = new List<Activity>()
+                                objActivityScheduler.Frequency = SchedulePeriod.Month;
+                                objActivityScheduler.Interval = 1;
+                                objActivityScheduler.Offset = TimeSpan.FromHours(Convert.ToDouble(InitialParams.PipelineScheduleOffset));
+                                objActivityScheduler.Style = SchedulerStyle.StartOfInterval;
+
+                                break;
+                            }
+                        case "Day":
+                            {
+                                objActivityScheduler.Frequency = SchedulePeriod.Day;
+                                objActivityScheduler.Interval = 1;
+                                if (isDataDeploy)
                                 {
-                                        activityInPipeline
-                                },
+                                    objActivityScheduler.Offset = TimeSpan.FromHours(Convert.ToDouble(InitialParams.PipelineScheduleOffset));
+                                }
+                                objActivityScheduler.Style = SchedulerStyle.StartOfInterval; break;
+                            }
 
-                                // Initial value for pipeline's active period. With this, you won't need to set slice status
-                                Start = PipelineActivePeriodStartTime,
-                                End = PipelineActivePeriodEndTime,
-                                IsPaused = false,
-                                PipelineMode = mode,
-                                HubName = cgsHubName,
-                                ExpirationTime = TimeSpan.FromMinutes(0)
-                            },
+                        case "Hour":
+                            {
+                                objActivityScheduler.Frequency = SchedulePeriod.Hour;
+                                objActivityScheduler.Interval = 1;
+                                objActivityScheduler.Offset = TimeSpan.FromMinutes(Convert.ToDouble(InitialParams.PipelineScheduleOffset));
+                                objActivityScheduler.Style = SchedulerStyle.StartOfInterval; break;
+                            }
+                    }
+                }
+                else
+                {
+                    objActivityScheduler.Frequency = SchedulePeriod.Day;
+                    objActivityScheduler.Interval = 1;
+                    if (isDataDeploy)
+                    {
+                        objActivityScheduler.Offset = TimeSpan.FromHours(3);
+                    }
+                    objActivityScheduler.Style = SchedulerStyle.StartOfInterval;
+                }
+
+                if (client == null)
+                {
+                    client = CreateManagementClientInstance();
+                }
+
+                Activity activityInPipeline = new Activity()
+                {
+                    Name = activityName,
+
+                    Inputs = new List<ActivityInput>() { new ActivityInput() { Name = dsInput } },
+
+                    Outputs = new List<ActivityOutput>() { new ActivityOutput() { Name = dsOutput } },
+
+                    TypeProperties = new CopyActivity()
+                    {
+                        Source = new SqlSource() { SqlReaderQuery = sqlQuery },
+                        Sink = new AzureDataLakeStoreSink()
+                        {
+                            WriteBatchSize = 0,
+                            WriteBatchTimeout = TimeSpan.FromMinutes(0)
                         }
-                    });
+                    },
 
-                // Create a pipeline with a copy activity
-                Console.WriteLine("created new pipeline " + pipelineName + " ... " + activityInPipeline.Name);
+                    Policy = new ActivityPolicy()
+                    {
+                        Timeout = TimeSpan.FromMinutes(1.0),
+                        Delay = TimeSpan.FromHours(Convert.ToDouble(InitialParams.PipelineScheduleOffset)),
+                        Concurrency = 1,
+                        ExecutionPriorityOrder = ExecutionPriorityOrder.NewestFirst,
+                      
+                        LongRetry = 0,
+                        LongRetryInterval = TimeSpan.FromMinutes(0.0),
+                        Retry = 3
+                        
+                    },
+                    Scheduler = objActivityScheduler
+                };
+
+                Pipeline pl = null;
+
+                try
+                {
+                    PipelineGetResponse respPipelines = client.Pipelines.Get(resourceGroupName, dataFactoryName, pipelineName);
+                    pl = respPipelines.Pipeline;
+
+                    Console.WriteLine("updating existing pipeline " + pipelineName + " ... " + activityInPipeline.Name);
+
+                    pl.Properties.Activities.Add(activityInPipeline);
+
+                    PipelineCreateOrUpdateParameters plParameters = new PipelineCreateOrUpdateParameters() { Pipeline = pl };
+
+                    client.Pipelines.CreateOrUpdate(resourceGroupName, dataFactoryName, plParameters);
+
+                    Console.WriteLine("updated successfully existing pipeline: " + pipelineName + " ... " + activityInPipeline.Name);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine("Unable to create or update pipeline " + ex.Message);
+                }
+
+                if (pl == null)
+                {
+                    // Create a pipeline with a copy activity
+                    Console.WriteLine("Creating new pipeline " + pipelineName + " ... " + activityInPipeline.Name);
+
+                    client.Pipelines.CreateOrUpdate(resourceGroupName, dataFactoryName,
+                        new PipelineCreateOrUpdateParameters()
+                        {
+                            Pipeline = new Pipeline()
+                            {
+                                Name = pipelineName,
+                                Properties = new PipelineProperties()
+                                {
+                                    Description = "Pipeline for data transfer from on-premise SC - SQL Server Datamart to Lake Store",
+
+                                    Activities = new List<Activity>()
+                                    {
+                                        activityInPipeline
+                                    },
+                                   
+
+                                    // Initial value for pipeline's active period. With this, you won't need to set slice status
+                                    Start = PipelineActivePeriodStartTime,
+                                    End = PipelineActivePeriodEndTime,
+                                    IsPaused = false,
+                                    PipelineMode = mode,
+                                    HubName = cgsHubName,
+                                    ExpirationTime = TimeSpan.FromMinutes(0)
+                                },
+                            }
+                        });
+
+                    // Create a pipeline with a copy activity
+                    Console.WriteLine("created new pipeline " + pipelineName + " ... " + activityInPipeline.Name);
+                }
+            } catch (Exception ex)
+            {
+                Console.WriteLine("pipeline " + ex.Message );
             }
         }
         

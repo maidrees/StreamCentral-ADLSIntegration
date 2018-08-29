@@ -23,7 +23,7 @@ namespace StreamCentral.ADLSIntegration
                 argList = args;
 
                 LoadCommandLineArgs();
-                //Call Method: Create Data Sets, Pipelines for all structures qualified for criteria.
+                ////Call Method: Create Data Sets, Pipelines for all structures qualified for criteria.
 
                 if (InitialParams.DeployCriteria.Equals("search"))
                 {
@@ -59,23 +59,23 @@ namespace StreamCentral.ADLSIntegration
                 }
 
                 //if (InitialParams.DeployCriteria.Equals("delete"))
-                //{
-                //    Console.WriteLine("Delete status of Input Data sets: Start ");
+                ////{
+                ////    Console.WriteLine("Delete status of Input Data sets: Start ");
 
-                //    ADFOperations.DeleteDatasets("SC_DSO_D_DSSnowdropLive");
+                ////    ADFOperations.DeleteDatasets("SC_DSO_D_DSSnowdropLive");
 
-                //    Console.WriteLine("Deleted Input Data set: End ");
+                ////    Console.WriteLine("Deleted Input Data set: End ");
 
-                //    Console.WriteLine("Delete status of Output Data sets: Start ");
+                ////    Console.WriteLine("Delete status of Output Data sets: Start ");
 
-                //    ADFOperations.DeleteDatasets("SC_DSO_D_DSSnowdropLive");
+                ////    ADFOperations.DeleteDatasets("SC_DSO_D_DSSnowdropLive");
 
-                //    Console.WriteLine("Deleted Output Data set: End ");
+                ////    Console.WriteLine("Deleted Output Data set: End ");
 
-                //}
+                ////}
 
                 //ADFOperations.DeletePipelines("SC_PL01_H_PreProd_");
-                //ADFOperations.DeletePipelines("SC_PL01_D_PreProd");
+                //ADFOperations.DeletePipelines("SC_PL01_D_PreProd_");
 
                 //ADFOperations.DeleteDatasets("SC_DSO_D_PreProd_");
                 //ADFOperations.DeleteDatasets("SC_DSO_H_PreProd_");

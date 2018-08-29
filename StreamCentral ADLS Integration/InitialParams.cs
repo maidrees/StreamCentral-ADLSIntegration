@@ -196,7 +196,7 @@ namespace StreamCentral.ADLSIntegration
                 }
                 else
                 {
-                    _offset = "03:00:00";
+                    _offset = "3";
                 }
             }
         }
