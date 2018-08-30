@@ -311,7 +311,7 @@ namespace StreamCentral.ADLSIntegration
                                 Frequency = "Day",
                                 Interval = 1,
                                Style = SchedulerStyle.StartOfInterval,
-                               Offset = TimeSpan.FromDays(Convert.ToDouble(InitialParams.ActivityFrequencyInterval))
+                               Offset = TimeSpan.FromHours(Convert.ToDouble(InitialParams.ActivityFrequencyInterval))
             },
 
                             Policy = new Policy()
