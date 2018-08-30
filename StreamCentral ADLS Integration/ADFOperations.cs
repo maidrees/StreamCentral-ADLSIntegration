@@ -134,9 +134,13 @@ namespace StreamCentral.ADLSIntegration
 
             firstDateTimeRecordInTable = ADFOperations.FetchFirstRowRecordDate(InitialParams.TableName, InitialParams.FilterDateTimeField);
 
+
+
             if (firstDateTimeRecordInTable <= DateTime.Now.Subtract(TimeSpan.FromHours(1)))
             {
                 //re: INPUT DATASET - Prepare the SQL query required for pipeline to execute on Source System
+
+                firstDateTimeRecordInTable = firstDateTimeRecordInTable.AddHours(3);
 
                 string sqlQuery = ADFOperations.GenerateADFPipelineSQLQuery(lstElements, dateTimeField, false, cpType);
 
