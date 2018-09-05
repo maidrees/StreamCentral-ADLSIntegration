@@ -51,18 +51,18 @@ namespace StreamCentral.ADLSIntegration
             {
                 dsType = "RivoHSE";
             }
+            else if (tableName.ToLower().Contains("excel") && (tableName.ToLower().Contains("coins")))
+            {
+                dsType = "CoinsEXCEL";
+            }
             else if (tableName.ToLower().Contains("coins"))
             {
                 dsType = "CoinsSQL";
             }
-            else if(tableName.ToLower().Contains("pocbdl"))
+            else if(tableName.ToLower().Contains("pocbdl") || tableName.ToLower().Contains("bdl"))
             {
                 dsType = "CMT";
-            }
-            else if (tableName.ToLower().Contains("excel"))
-            {
-                dsType = "CoinsEXCEL";
-            }
+            }           
             else
             {
                 dsType = tableName;
