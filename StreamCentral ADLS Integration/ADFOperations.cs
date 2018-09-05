@@ -148,13 +148,14 @@ namespace StreamCentral.ADLSIntegration
                   
                 Console.WriteLine("Deploying data sets and pipelines for Headers");
 
-                string inDataSetName = String.Format("SC_DSI_H_{0}_{1}",InitialParams.Environment,InOutDataSetNameRef);                    
-                string outDataSetName =String.Format("SC_DSO_H_{0}_{1}",InitialParams.Environment, InOutDataSetNameRef);
-                string pipelineName = String.Format("SC_PL01_H_{0}_{1}", InitialParams.Environment,InOutDataSetNameRef);
-                string activityName = String.Format("Act_{0}_{1}", InitialParams.Environment, InOutDataSetNameRef);
+                string inDataSetName = String.Format("SC-{2}_DSI_H_{0}_{1}",InitialParams.Environment,InOutDataSetNameRef,InitialParams.TempCompPrefix);                    
+                string outDataSetName =String.Format("SC-{2}_DSO_H_{0}_{1}", InitialParams.Environment, InOutDataSetNameRef, InitialParams.TempCompPrefix);
+                string pipelineName = String.Format("SC-{2}_PL01_H_{0}_{1}", InitialParams.Environment,InOutDataSetNameRef, InitialParams.TempCompPrefix);
+                string activityName = String.Format("Act-{2}_H_{0}_{1}", InitialParams.Environment, InOutDataSetNameRef, InitialParams.TempCompPrefix);
                 string fileName = "Header_" + InOutDataSetNameRef;
-                string folderpath = String.Format("{0}/DL-{1}/{2}/{3}", InitialParams.FolderPath,
-                    InitialParams.DataSourcePathInADLS, InitialParams.TablePathInADLS, InOutDataSetNameRef);
+                string folderpath = String.Format("{0}/{5}/DL-{1}/{4}/{2}/{3}", InitialParams.FolderPath,
+                    InitialParams.DataSourcePathInADLS, InitialParams.TablePathInADLS, InOutDataSetNameRef,InitialParams.TempCompPrefix,
+                    InitialParams.TempPathDeviation);
 
                 DeployDatasetAndPipelines(pipelineName,activityName, inDataSetName, outDataSetName, tableName,
                     lstElements, fileName, folderpath, sqlQuery, firstDateTimeRecordInTable, false,cpType);
@@ -167,18 +168,21 @@ namespace StreamCentral.ADLSIntegration
 
                 Console.WriteLine("Deploying data sets and pipelines for data");
 
-                inDataSetName = String.Format("SC_DSI_D_{0}_{1}",InitialParams.Environment,InOutDataSetNameRef);
-                outDataSetName = String.Format("SC_DSO_D_{0}_{1}", InitialParams.Environment,InOutDataSetNameRef);
-                pipelineName = String.Format("SC_PL01_D_{0}_{1}",InitialParams.Environment,InOutDataSetNameRef);
-                activityName = String.Format("Act_{0}_{1}", InitialParams.Environment, InOutDataSetNameRef);
+                inDataSetName = String.Format("SC-{2}_DSI_D_{0}_{1}", InitialParams.Environment, InOutDataSetNameRef, InitialParams.TempCompPrefix);
+                outDataSetName = String.Format("SC-{2}_DSO_D_{0}_{1}", InitialParams.Environment, InOutDataSetNameRef, InitialParams.TempCompPrefix);
+                pipelineName = String.Format("SC-{2}_PL01_D_{0}_{1}", InitialParams.Environment, InOutDataSetNameRef, InitialParams.TempCompPrefix);
+                activityName = String.Format("Act-{2}_D_{0}_{1}", InitialParams.Environment, InOutDataSetNameRef, InitialParams.TempCompPrefix);
 
-                if (cpType.Equals(CopyOnPremSQLToADLAType.Distinct) || cpType.Equals(CopyOnPremSQLToADLAType.All) || cpType.Equals(CopyOnPremSQLToADLAType.Flattened))
+                if (cpType.Equals(CopyOnPremSQLToADLAType.Distinct) || 
+                    cpType.Equals(CopyOnPremSQLToADLAType.All) || 
+                    cpType.Equals(CopyOnPremSQLToADLAType.Flattened) ||
+                    cpType.Equals(CopyOnPremSQLToADLAType.LastIteration))
                 {
                     fileName = "Data_" + InOutDataSetNameRef;
                 }
                 else
                 {
-                    fileName = "Data_" + InOutDataSetNameRef + "-{year}-{month}-{day}";
+                    fileName = "Data_" + InOutDataSetNameRef + "-{year}-{month}-{day}-{hour}-{minute}";
                 }
                 
                 DeployDatasetAndPipelines(pipelineName,activityName, inDataSetName, outDataSetName, tableName, 
@@ -209,7 +213,7 @@ namespace StreamCentral.ADLSIntegration
             {
                 //Create Input DataSet
                 CreateOrUpdateInputDataSet(client, resourceGroupName, dataFactoryName, linkedServiceNameSource,
-                    inDataSetName, tableName, lstElements);
+                    inDataSetName, tableName, lstElements, IsDataDeploy);
             }
             try
             {
@@ -285,55 +289,52 @@ namespace StreamCentral.ADLSIntegration
         }
 
         public static void CreateOrUpdateInputDataSet(DataFactoryManagementClient client, string resourceGroupName,
-            string dataFactoryName, string linkedServiceName, string datasetSource, string sourceStructureName, List<DataElement> InputParams)
+            string dataFactoryName, string linkedServiceName, string datasetSource, string sourceStructureName, 
+            List<DataElement> InputParams, bool isDataDeploy)
         {
             // create input datasets
             Console.WriteLine("Creating input dataset - " + datasetSource);
 
+            Availability objAvailability = GetFormattedAvailabilityInstance(isDataDeploy);
+
             try
             {
                 client.Datasets.CreateOrUpdate(resourceGroupName, dataFactoryName,
-                new DatasetCreateOrUpdateParameters()
-                {
-                    Dataset = new Dataset()
+                    new DatasetCreateOrUpdateParameters()
                     {
-                        Name = datasetSource,
-
-                        Properties = new DatasetProperties()
+                        Dataset = new Dataset()
                         {
-                            LinkedServiceName = linkedServiceName,
+                            Name = datasetSource,
 
-                            TypeProperties = new SqlServerTableDataset()
+                            Properties = new DatasetProperties()
                             {
-                                TableName = sourceStructureName
-                            },
+                                LinkedServiceName = linkedServiceName,
 
-                            Structure = InputParams,
-                            External = true,
-                            Availability = new Availability()
-                            {
-                                Frequency = "Day",
-                                Interval = 1,
-                               Style = SchedulerStyle.StartOfInterval,
-                               Offset = TimeSpan.FromHours(Convert.ToDouble(InitialParams.ActivityFrequencyInterval))
-            },
-
-                            Policy = new Policy()
-                            {
-                                Validation = new ValidationPolicy()
+                                TypeProperties = new SqlServerTableDataset()
                                 {
-                                    MinimumRows = 2
-                                }
-                            },
+                                    TableName = sourceStructureName
+                                },
 
-                        },
-                    }
-                });                
+                                Structure = InputParams,
+                                External = true,
+                                Availability = objAvailability,
+
+                                Policy = new Policy()
+                                {
+                                    Validation = new ValidationPolicy()
+                                    {
+                                        MinimumRows = 2
+                                    }
+                                },
+
+                            },
+                        }
+                    });
 
                 // create input dataset
                 Console.WriteLine("Created input dataset - " + datasetSource);
             }
-            catch(InvalidOperationException invalidToken)
+            catch (InvalidOperationException invalidToken)
             {
                 if (invalidToken.Message.Contains("token") || invalidToken.Message.Contains("expir"))
                 {
@@ -355,11 +356,8 @@ namespace StreamCentral.ADLSIntegration
             Console.WriteLine(String.Format("Creating output dataset - {0} ", datasetDestination));
 
             bool isFirstRowHeader = false;
-            var period = SchedulePeriod.Day;
-            System.TimeSpan offset = new TimeSpan();
 
-            Availability ObjDataSetAvailability = new Availability();
-
+            
 
             if (!isDataDeploy)
             { isFirstRowHeader = true; }
@@ -371,51 +369,8 @@ namespace StreamCentral.ADLSIntegration
                     client = CreateManagementClientInstance();
                 }
 
-                if(!String.IsNullOrEmpty(InitialParams.ActivityFrequencyType))
-                {
-                    switch(InitialParams.ActivityFrequencyType)
-                    {
-                        case "Month":
-                            {
 
-                                ObjDataSetAvailability.Frequency = SchedulePeriod.Month;
-                                ObjDataSetAvailability.Interval = 1;
-                                ObjDataSetAvailability.Offset = TimeSpan.FromDays(Convert.ToDouble(InitialParams.ActivityFrequencyInterval));
-                                ObjDataSetAvailability.Style = SchedulerStyle.StartOfInterval;
-
-                                break;
-                            }
-                        case "Day":
-                            {
-                                if (isDataDeploy)
-                                {
-                                    ObjDataSetAvailability.Offset = TimeSpan.FromHours(Convert.ToDouble(InitialParams.PipelineScheduleOffset));
-                                }
-                                ObjDataSetAvailability.Frequency = SchedulePeriod.Day;
-                                ObjDataSetAvailability.Interval = 1;
-                               //ObjDataSetAvailability.Offset = TimeSpan.FromHours(Convert.ToDouble(InitialParams.ActivityFrequencyInterval));
-                                ObjDataSetAvailability.Style = SchedulerStyle.StartOfInterval; break;
-                            }
-                     
-                        case "Hour":
-                            {
-                                ObjDataSetAvailability.Frequency = SchedulePeriod.Hour;
-                                ObjDataSetAvailability.Interval = 1;
-                                ObjDataSetAvailability.Offset = TimeSpan.FromMinutes(Convert.ToDouble(InitialParams.ActivityFrequencyInterval));
-                                ObjDataSetAvailability.Style = SchedulerStyle.StartOfInterval; break;
-                            }
-                    }
-                }
-                else
-                {
-                    ObjDataSetAvailability.Frequency = SchedulePeriod.Day;
-                    ObjDataSetAvailability.Interval = 1;
-                    if (isDataDeploy)
-                    {
-                        ObjDataSetAvailability.Offset = TimeSpan.FromHours(Convert.ToDouble(InitialParams.PipelineScheduleOffset));
-                    }
-                    ObjDataSetAvailability.Style = SchedulerStyle.StartOfInterval;
-                }
+                Availability ObjDataSetAvailability = GetFormattedAvailabilityInstance(isDataDeploy);
 
 
                 client.Datasets.CreateOrUpdate(resourceGroupName, dataFactoryName,
@@ -447,36 +402,8 @@ namespace StreamCentral.ADLSIntegration
                                     TreatEmptyAsNull = true
                                 },
 
-                                PartitionedBy = new Collection<Partition>()
-                                  {
-                                    new Partition()
-                                    {
-                                        Name = "year",
-                                        Value = new DateTimePartitionValue()
-                                        {
-                                            Date = "SliceStart",
-                                            Format  = "yyyy"
-                                        }
-                                    },
-                                    new Partition()
-                                    {
-                                        Name = "month",
-                                        Value = new DateTimePartitionValue()
-                                        {
-                                            Date = "SliceStart",
-                                            Format  = "MM"
-                                        }
-                                    },
-                                    new Partition()
-                                    {
-                                        Name = "day",
-                                        Value = new DateTimePartitionValue()
-                                        {
-                                            Date = "SliceStart",
-                                            Format  = "dd"
-                                        }
-                                    }
-                                  },
+                                PartitionedBy = GetFormattedPartitionCollectionInstance(),
+
                             },
 
                             Availability = ObjDataSetAvailability,
@@ -602,11 +529,9 @@ namespace StreamCentral.ADLSIntegration
 
             try
             {
-
-
                 DateTime PipelineActivePeriodStartTime = DateTime.Now.Subtract(TimeSpan.FromDays(1000.00));
                 DateTime PipelineActivePeriodEndTime = PipelineActivePeriodStartTime;
-                Scheduler objActivityScheduler = new Scheduler();
+                TimeSpan objActivityDelayPolicyAttr = TimeSpan.FromMinutes(Convert.ToDouble(InitialParams.DelayIntervalOfActivity));
                 string mode = PipelineMode.OneTime;
 
                 if ((isDataDeploy))// && (!cpType.ToString().Equals(CopyOnPremSQLToADLAType.All.ToString())))
@@ -617,49 +542,48 @@ namespace StreamCentral.ADLSIntegration
                     mode = PipelineMode.Scheduled;
                 }
 
-                if (!String.IsNullOrEmpty(InitialParams.ActivityFrequencyType))
+                Scheduler objActivityScheduler = new Scheduler();
+
+                objActivityScheduler.Interval = Convert.ToUInt16(InitialParams.ActivityFrequencyInterval);
+
+                if (isDataDeploy)
                 {
-                    switch (InitialParams.ActivityFrequencyType)
-                    {
-                        case "Month":
-                            {
-
-                                objActivityScheduler.Frequency = SchedulePeriod.Month;
-                                objActivityScheduler.Interval = 1;
-                                objActivityScheduler.Offset = TimeSpan.FromHours(Convert.ToDouble(InitialParams.PipelineScheduleOffset));
-                                objActivityScheduler.Style = SchedulerStyle.StartOfInterval;
-
-                                break;
-                            }
-                        case "Day":
-                            {
-                                objActivityScheduler.Frequency = SchedulePeriod.Day;
-                                objActivityScheduler.Interval = 1;
-                                if (isDataDeploy)
-                                {
-                                    objActivityScheduler.Offset = TimeSpan.FromHours(Convert.ToDouble(InitialParams.PipelineScheduleOffset));
-                                }
-                                objActivityScheduler.Style = SchedulerStyle.StartOfInterval; break;
-                            }
-
-                        case "Hour":
-                            {
-                                objActivityScheduler.Frequency = SchedulePeriod.Hour;
-                                objActivityScheduler.Interval = 1;
-                                objActivityScheduler.Offset = TimeSpan.FromMinutes(Convert.ToDouble(InitialParams.PipelineScheduleOffset));
-                                objActivityScheduler.Style = SchedulerStyle.StartOfInterval; break;
-                            }
-                    }
+                    objActivityScheduler.Offset = TimeSpan.FromMinutes(Convert.ToDouble(InitialParams.OffsetIntervalOfDataSlice));
                 }
-                else
+
+                if (InitialParams.SliceType == SliceType.Start && isDataDeploy)
                 {
-                    objActivityScheduler.Frequency = SchedulePeriod.Day;
-                    objActivityScheduler.Interval = 1;
-                    if (isDataDeploy)
-                    {
-                        objActivityScheduler.Offset = TimeSpan.FromHours(3);
-                    }
                     objActivityScheduler.Style = SchedulerStyle.StartOfInterval;
+                }
+
+                switch (InitialParams.ActivityFrequencyType)
+                {
+                    case Frequency.Month:
+                        {
+                            objActivityScheduler.Frequency = SchedulePeriod.Month;                           
+                            break;
+                        }
+                    case Frequency.Day:
+                        {
+                            objActivityScheduler.Frequency = SchedulePeriod.Day;
+                            break;
+                        }
+                    case Frequency.Hour:
+                        {
+                            objActivityScheduler.Frequency = SchedulePeriod.Hour;
+                            break;
+                        }
+                    case Frequency.Minute:
+                        {
+                            objActivityScheduler.Frequency = SchedulePeriod.Minute;                            
+                            break;
+                        }
+                    default:
+                        {
+                            objActivityScheduler.Frequency = SchedulePeriod.Day;
+                            break;
+                        }
+
                 }
 
                 if (client == null)
@@ -687,27 +611,30 @@ namespace StreamCentral.ADLSIntegration
 
                     Policy = new ActivityPolicy()
                     {
-                        Timeout = TimeSpan.FromMinutes(1.0),
-                        Delay = TimeSpan.FromHours(Convert.ToDouble(InitialParams.PipelineScheduleOffset)),
+                        Timeout = TimeSpan.FromMinutes(3.0),
+                        Delay = objActivityDelayPolicyAttr,
                         Concurrency = 1,
                         ExecutionPriorityOrder = ExecutionPriorityOrder.NewestFirst,
-                      
                         LongRetry = 0,
                         LongRetryInterval = TimeSpan.FromMinutes(0.0),
                         Retry = 3
                         
                     },
-                    Scheduler = objActivityScheduler
+                    
                 };
+
 
                 Pipeline pl = null;
 
                 try
                 {
+
+                    Console.WriteLine("Finding existing pipeline: " + pipelineName + " ... " + activityInPipeline.Name);
+
                     PipelineGetResponse respPipelines = client.Pipelines.Get(resourceGroupName, dataFactoryName, pipelineName);
                     pl = respPipelines.Pipeline;
 
-                    Console.WriteLine("updating existing pipeline " + pipelineName + " ... " + activityInPipeline.Name);
+                    Console.WriteLine("FIND SUCCESS STATUS: Now updating existing pipeline " + pipelineName + " ... " + activityInPipeline.Name);
 
                     pl.Properties.Activities.Add(activityInPipeline);
 
@@ -719,7 +646,7 @@ namespace StreamCentral.ADLSIntegration
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine("Unable to create or update pipeline " + ex.Message);
+                    Console.WriteLine("Could not found any existing pipeline: " + ex.Message);
                 }
 
                 if (pl == null)
@@ -794,7 +721,7 @@ namespace StreamCentral.ADLSIntegration
                             if (!(name == "RecordId" || name == "Seq" || name == "Call_UID" || name == "CreatedBy" ||
                                 name == "CreatedDate" || name == "ModifiedBy" || name == "ModifiedDate" ||
                                 name == "LOCATIONDIMENSIONID" || name == "EntityId" || name == "EntityLocationId" ||
-                                name == "operating_id" || name == "source_id"))
+                                name == "operating_id" || name == "source_id" || (type.Contains("image"))))
                             {
 
                                 //converting SQL Server datatypes to ADF data types
@@ -836,7 +763,121 @@ namespace StreamCentral.ADLSIntegration
             }
         }
 
+
+        public static Availability GetFormattedAvailabilityInstance(bool isDataDeploy)
+        {
+            
+            TimeSpan ObjOffsetTimeSpan = TimeSpan.FromMinutes(0);
+
+            if (isDataDeploy)
+            {
+                ObjOffsetTimeSpan = TimeSpan.FromMinutes(Convert.ToDouble(InitialParams.OffsetIntervalOfDataSlice));
+            }
+
+            Availability objAvailability = new Availability();
+
+            if (InitialParams.SliceType == SliceType.Start && isDataDeploy)
+            {
+                objAvailability.Style = SchedulerStyle.StartOfInterval;
+            }
+
+            objAvailability.Interval = Convert.ToUInt16(InitialParams.ActivityFrequencyInterval);
+
+            objAvailability.Offset = ObjOffsetTimeSpan;
+            
+            try
+            {
+                switch (InitialParams.ActivityFrequencyType)
+                {
+                    case Frequency.Month:
+                        {
+                            objAvailability.Frequency = Frequency.Month.ToString();
+                            break;
+                        }
+                    case Frequency.Day:
+                        {
+                            objAvailability.Frequency = Frequency.Day.ToString();
+                            break;
+                        }
+                    case Frequency.Hour:
+                        {
+                            objAvailability.Frequency = Frequency.Hour.ToString();
+                            break;
+                        }
+                    case Frequency.Minute:
+                        {
+                            objAvailability.Frequency = Frequency.Minute.ToString();
+                            break;
+                        }
+                    default:
+                        {
+                            objAvailability.Frequency = Frequency.Day.ToString();
+                            break;
+                        }
+                }
+            }
+            catch (Exception ex)
+            {
+                throw;
+            }
+            return objAvailability;
+        }
+
+        public static Collection<Partition> GetFormattedPartitionCollectionInstance()
+        {
+            return new Collection<Partition>()
+                {
+                new Partition()
+                {
+                    Name = "year",
+                    Value = new DateTimePartitionValue()
+                    {
+                        Date = "SliceEnd",
+                        Format  = "yyyy"
+                    }
+                },
+                new Partition()
+                {
+                    Name = "month",
+                    Value = new DateTimePartitionValue()
+                    {
+                        Date = "SliceEnd",
+                        Format  = "MM"
+                    }
+                },
+                new Partition()
+                {
+                    Name = "day",
+                    Value = new DateTimePartitionValue()
+                    {
+                        Date = "SliceEnd",
+                        Format  = "dd"
+                    }
+                },
+                new Partition()
+                {
+                    Name = "hour",
+                    Value = new DateTimePartitionValue()
+                    {
+                        Date="SliceEnd",
+                        Format = "HH"
+                    }
+
+                },
+                new Partition()
+                {
+                    Name = "minute",
+                    Value = new DateTimePartitionValue()
+                    {
+                        Date = "SliceEnd",
+                        Format = "mm"
+                    }
+                }
+            };
+
         
+        }
+
         //public static string GenerateADFPipelineSQLQuery(string tableName, 
         //    List<DataElement> inOutParams, string dateField, bool isDataQuery, CopyOnPremSQLToADLAType copyDataType)
         //{
@@ -936,7 +977,9 @@ namespace StreamCentral.ADLSIntegration
             {
                 case CopyOnPremSQLToADLAType.LastIteration:
                     {
-
+                        sqlQuery = sqlQuery + " from " + tableName + " where " +
+                            " CONVERT(varchar, RECORDDATEUTC, 101) = (select max(CONVERT(varchar, RECORDDATEUTC, 101)) from " +
+                            tableName + ")')";             
                         break;
                     }
                 case CopyOnPremSQLToADLAType.All:
@@ -964,35 +1007,35 @@ namespace StreamCentral.ADLSIntegration
                     }
             }
 
-            if(tableName.Contains("DSServiceNowCMNLocations"))
-            {
-                sqlQuery = "$$Text.Format('SELECT [RECORDDATEUTC],[city]," +
-                    "(select top 1 name from Fact_DSServiceNowCompaniesmetricdetails where sys_id = [company]) as [company]," +
-                    "(select top 1 name from Fact_DSServiceNowUsersmetricdetails where sys_id = [contact] and name is not null) as [contact]," +
-                    "[country],[fax_phone],[full_name],[lat_long_error],[latitude],[longitude],[name],[parent],[phone]," +
-                    "[phone_territory],[state],[stock_room],[street],[sys_created_by],[sys_created_on],[sys_created_onId],[sys_id]," +
-                    "[sys_mod_count],[sys_tags],[sys_updated_by],[sys_updated_on],[sys_updated_onId],[u_boolean_1]," +
-                    "(select top 1 name from FACT_DSServiceNowUsersmetricdetails where sys_id = [u_chief_operating_officer]) as [u_chief_operating_officer]," +
-                    "(select top 1 name from FACT_DSServiceNowUsersmetricdetails where sys_id = [u_contracts_manager]) as [u_contracts_manager], " +
-                    "(select top 1 name from FACT_DSServiceNowUsersmetricdetails where sys_id = [u_head_of_delivery]) as [u_head_of_delivery], " +
-                    "(select top 1 name from FACT_DSServiceNowUsersmetricdetails where sys_id = [u_project_manager]) as [u_project_manager], " +
-                    "(select top 1 name from [FACT_DSServiceNowUsersmetricdetails] where sys_id = [u_reference_1]) as [u_reference_1]," +
-                    "(select top 1 name from [FACT_DSServiceNowUsersmetricdetails] where sys_id = [u_reference_2]) as [u_reference_2]," +
-                    "(select top 1 name from [FACT_DSServiceNowUsersmetricdetails] where sys_id = [u_reference_4]) as [u_reference_4], " +
-                    "(select top 1 name from [FACT_DSServiceNowUsersmetricdetails] where sys_id = [u_reference_5]) as [u_reference_5],  " +
-                    "(select top 1 name from [FACT_DSServiceNowUsersmetricdetails] where sys_id = [u_regionalmanager_office]) as [u_regionalmanager_office]," +
-                    "[u_string_1],[zip] from " +
+            //if(tableName.Contains("DSServiceNowCMNLocations"))
+            //{
+            //    sqlQuery = "$$Text.Format('SELECT [RECORDDATEUTC],[city]," +
+            //        "(select top 1 name from Fact_DSServiceNowCompaniesmetricdetails where sys_id = [company]) as [company]," +
+            //        "(select top 1 name from Fact_DSServiceNowUsersmetricdetails where sys_id = [contact] and name is not null) as [contact]," +
+            //        "[country],[fax_phone],[full_name],[lat_long_error],[latitude],[longitude],[name],[parent],[phone]," +
+            //        "[phone_territory],[state],[stock_room],[street],[sys_created_by],[sys_created_on],[sys_created_onId],[sys_id]," +
+            //        "[sys_mod_count],[sys_tags],[sys_updated_by],[sys_updated_on],[sys_updated_onId],[u_boolean_1]," +
+            //        "(select top 1 name from FACT_DSServiceNowUsersmetricdetails where sys_id = [u_chief_operating_officer]) as [u_chief_operating_officer]," +
+            //        "(select top 1 name from FACT_DSServiceNowUsersmetricdetails where sys_id = [u_contracts_manager]) as [u_contracts_manager], " +
+            //        "(select top 1 name from FACT_DSServiceNowUsersmetricdetails where sys_id = [u_head_of_delivery]) as [u_head_of_delivery], " +
+            //        "(select top 1 name from FACT_DSServiceNowUsersmetricdetails where sys_id = [u_project_manager]) as [u_project_manager], " +
+            //        "(select top 1 name from [FACT_DSServiceNowUsersmetricdetails] where sys_id = [u_reference_1]) as [u_reference_1]," +
+            //        "(select top 1 name from [FACT_DSServiceNowUsersmetricdetails] where sys_id = [u_reference_2]) as [u_reference_2]," +
+            //        "(select top 1 name from [FACT_DSServiceNowUsersmetricdetails] where sys_id = [u_reference_4]) as [u_reference_4], " +
+            //        "(select top 1 name from [FACT_DSServiceNowUsersmetricdetails] where sys_id = [u_reference_5]) as [u_reference_5],  " +
+            //        "(select top 1 name from [FACT_DSServiceNowUsersmetricdetails] where sys_id = [u_regionalmanager_office]) as [u_regionalmanager_office]," +
+            //        "[u_string_1],[zip] from " +
 
-                    "(Select[RECORDDATEUTC], [city], [company], [contact], [country], [fax_phone], [full_name], [lat_long_error], [latitude],[longitude]," +
-                    " [name], [parent], [phone], [phone_territory], [state], [stock_room], [street], [sys_created_by], [sys_created_on]," +
-                    "[sys_created_onId], [sys_id], [sys_mod_count], [sys_tags], [sys_updated_by], [sys_updated_on], [sys_updated_onId]," +
-                    " [u_boolean_1],[u_chief_operating_officer], [u_contracts_manager], [u_head_of_delivery], [u_project_manager], " +
-                    "[u_reference_1],[u_reference_2],[u_reference_4],[u_reference_5], " +
-                    "[u_regionalmanager_office], [u_string_1], " +
-                    "[zip], ROW_NUMBER() over(partition by sys_id order by recorddateutc desc) pk from FACT_DSServiceNowCMNLocationsmetricdetails) " +
-                    "dat where pk = 1')";
+            //        "(Select[RECORDDATEUTC], [city], [company], [contact], [country], [fax_phone], [full_name], [lat_long_error], [latitude],[longitude]," +
+            //        " [name], [parent], [phone], [phone_territory], [state], [stock_room], [street], [sys_created_by], [sys_created_on]," +
+            //        "[sys_created_onId], [sys_id], [sys_mod_count], [sys_tags], [sys_updated_by], [sys_updated_on], [sys_updated_onId]," +
+            //        " [u_boolean_1],[u_chief_operating_officer], [u_contracts_manager], [u_head_of_delivery], [u_project_manager], " +
+            //        "[u_reference_1],[u_reference_2],[u_reference_4],[u_reference_5], " +
+            //        "[u_regionalmanager_office], [u_string_1], " +
+            //        "[zip], ROW_NUMBER() over(partition by sys_id order by recorddateutc desc) pk from FACT_DSServiceNowCMNLocationsmetricdetails) " +
+            //        "dat where pk = 1')";
 
-            }
+            //}
 
             return sqlQuery;
         }

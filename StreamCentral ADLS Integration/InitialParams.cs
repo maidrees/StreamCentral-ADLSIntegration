@@ -5,6 +5,11 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Configuration;
 
+using Microsoft.Azure;
+using Microsoft.Azure.Management.DataFactories;
+using Microsoft.Azure.Management.DataFactories.Models;
+using Microsoft.Azure.Management.DataFactories.Common.Models;
+
 namespace StreamCentral.ADLSIntegration
 {
     public static class InitialParams
@@ -23,7 +28,7 @@ namespace StreamCentral.ADLSIntegration
 
         private static string _filterDateTimeField = String.Empty;
 
-        private static string _actFrequencyType = String.Empty;
+        private static Frequency _actFrequencyType;
 
         private static string _actFrequencyInterval = String.Empty;
 
@@ -39,9 +44,17 @@ namespace StreamCentral.ADLSIntegration
 
         private static string _environment = String.Empty;
 
-        private static string _copyOnPremToADLAType = String.Empty;
+        private static CopyOnPremSQLToADLAType _copyOnPremToADLAType;
 
-        private static string _offset = String.Empty;
+        private static string _offsetIntervalOfDataSlice = "0";
+
+        private static string _delayIntervalOfActivity = "0";
+
+        private static SliceType _sliceType = SliceType.End;
+
+        private static string _tempcompprefix = String.Empty;
+
+        private static string _temppathdeviation = String.Empty;
 
         public static string FilterDistinctField
         {
@@ -85,7 +98,7 @@ namespace StreamCentral.ADLSIntegration
             set { _filterDateTimeField = value; }
         }
 
-        public static string ActivityFrequencyType
+        public static Frequency ActivityFrequencyType
         {
             get { return _actFrequencyType; }
             set { _actFrequencyType = value; }
@@ -94,7 +107,17 @@ namespace StreamCentral.ADLSIntegration
         public static string ActivityFrequencyInterval
         {
             get { return _actFrequencyInterval; }
-            set { _actFrequencyInterval = value; }
+            set
+            {
+                if (!String.IsNullOrEmpty(value))
+                {
+                    _actFrequencyInterval = value;
+                }
+                else
+                {
+                    _actFrequencyInterval = "1";
+                }
+            }
         }
 
         public static string DeployCriteria
@@ -168,7 +191,7 @@ namespace StreamCentral.ADLSIntegration
             }
         }
 
-        public static string CopyOnPremToADLAType
+        public static CopyOnPremSQLToADLAType OnPremiseADLAType
         {
             get
             {
@@ -186,18 +209,62 @@ namespace StreamCentral.ADLSIntegration
             set { _environment = value; }
         }
 
-        public static string PipelineScheduleOffset
+        public static string OffsetIntervalOfDataSlice
         {
-            get { return _offset; }
+            get { return _offsetIntervalOfDataSlice; }
             set {
                 if (!String.IsNullOrEmpty(value))
                 {
-                    _offset = value;
+                    _offsetIntervalOfDataSlice = value;
                 }
                 else
                 {
-                    _offset = "3";
+                    _offsetIntervalOfDataSlice = "0";
                 }
+            }
+        }
+
+        public static string DelayIntervalOfActivity
+        {
+            get { return _delayIntervalOfActivity;  }
+            set
+            {
+                if (!String.IsNullOrEmpty(value))
+                {
+                    _delayIntervalOfActivity = value;
+                }
+                else
+                {
+                    _delayIntervalOfActivity = "0";
+                }
+
+            }
+        }
+
+        public static string TempPathDeviation
+        {
+            get { return _temppathdeviation; }
+            set
+            {
+                _temppathdeviation = value;
+            }
+        }
+
+        public static string TempCompPrefix
+        {
+            get { return _tempcompprefix; }
+            set
+            {
+                _tempcompprefix = value;
+            }
+        }
+
+        public static SliceType SliceType
+        {
+            get { return _sliceType;  }
+            set
+            {
+                _sliceType = value;
             }
         }
     }

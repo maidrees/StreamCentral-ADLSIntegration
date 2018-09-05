@@ -36,4 +36,40 @@ namespace StreamCentral.ADLSIntegration
         //This is for data deployment
         D
     }
+
+    public enum Frequency
+    {
+        Year,
+        Month,
+        Day,
+        Hour,
+        Minute
+    }
+
+    public enum InputCommandLineArgs
+    {
+        criteria,
+        datasource,
+        table,
+        folderpath,
+        datefilter,
+        dataslice,
+        datasliceinterval,
+        primarykey,
+        copydataType,
+        tablepathinadls,
+        environment,
+        offsetinterval,
+        delayinterval,
+        datasourcepathinadls,
+        slicetype,
+        temppathdeviation,
+        tempcompprefix
+    }
+
+    public enum SliceType
+    {
+        Start,
+        End
+    }
 }

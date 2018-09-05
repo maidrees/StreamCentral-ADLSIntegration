@@ -80,6 +80,76 @@ namespace StreamCentral.ADLSIntegration
             return formattedFolderPath;
         }
 
+        public static CopyOnPremSQLToADLAType GetOnPremADLAType(string onPremAdlaType)
+        {
+            switch (onPremAdlaType)
+            {
+                case "all":
+                    {
+                        return CopyOnPremSQLToADLAType.All;                        
+                    }
+                case "transactional":
+                    {
+                        return CopyOnPremSQLToADLAType.Transactional;                        
+                    }
+                case "distinct":
+                    {
+                        return CopyOnPremSQLToADLAType.Distinct;                        
+                    }
+                case "lastiteration":
+                    {
+                        return CopyOnPremSQLToADLAType.LastIteration;                        
+                    }
+                default:
+                    return CopyOnPremSQLToADLAType.All;
+            }
+        }
+
+        public static Frequency GetDSActivityFrequency(string frequency)
+        {
+            switch(frequency.ToLower())
+            {
+                case "year":
+                    {
+                        return Frequency.Year;                        
+                    }
+                case "month":
+                    {
+                        return Frequency.Month;
+                    }
+                case "day":
+                    {
+                        return Frequency.Day;
+                    }
+                case "hour":
+                    {
+                        return Frequency.Hour;
+                    }
+                case "minute":
+                    {
+                        return Frequency.Minute;
+                    }
+                default:
+                    return Frequency.Day;
+            }
+        }
+
+        public static SliceType GetSliceType(string value)
+        {
+            if(!String.IsNullOrEmpty(value))
+            {
+                if(value.Equals(SliceType.Start.ToString().ToLower()))
+                {
+                    return SliceType.Start;
+                }
+                else
+                {
+                    return SliceType.End;
+                }
+            }
+            return SliceType.End;
+        }
+
     }
 
   
