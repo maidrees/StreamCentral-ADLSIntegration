@@ -82,7 +82,7 @@ namespace StreamCentral.ADLSIntegration
 
         public static CopyOnPremSQLToADLAType GetOnPremADLAType(string onPremAdlaType)
         {
-            switch (onPremAdlaType)
+            switch (onPremAdlaType.ToLower())
             {
                 case "all":
                     {
