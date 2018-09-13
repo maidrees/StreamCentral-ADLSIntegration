@@ -105,6 +105,7 @@
   <ItemGroup>
     <Compile Include="ADFOperations.cs" />
     <Compile Include="ADLSFileOperations.cs" />
+    <Compile Include="Constants.cs" />
     <Compile Include="EnumDefinitions.cs" />
     <Compile Include="InitialParams.cs" />
     <Compile Include="Program.cs" />

@@ -22,18 +22,27 @@ namespace StreamCentral.ADLSIntegration
         {
             try
             {
-                argList = args;
-
-                if (argList.First().Contains(":"))
+                try
                 {
-                    LoadCommandLineArgs();
-                }
-                else
-                {
-                    SetCommandLinePropertyValues();
-                }
-                ////Call Method: Create Data Sets, Pipelines for all structures qualified for criteria.
+                    argList = args;
 
+                    if (argList.First().Contains(":"))
+                    {
+                        LoadCommandLineArgs();
+                    }
+                    else
+                    {
+                        SetCommandLinePropertyValues();
+                    }
+                    ////Call Method: Create Data Sets, Pipelines for all structures qualified for criteria.
+
+                }
+                catch(Exception ex)
+                {
+                    Console.WriteLine("Unable to read any input from command line. Executing statements after that now:" + ex.Message);
+
+                    ADFOperations.DeleteDatasets("SC-pp2_DSI_H_");
+                }
                 if (InitialParams.DeployCriteria.Equals("search"))
                 {
                     string[] searchText = new string[3];
@@ -53,33 +62,36 @@ namespace StreamCentral.ADLSIntegration
                 if (InitialParams.DeployCriteria.Equals("delete"))
                 {
 
-                    Console.WriteLine("Delete status of Input Data sets: Start ");
+                    Console.WriteLine("Deleting the Pipelines : Start ");
 
-                    //Console.WriteLine("Deleted Input Data set: End ");
+                    ADFOperations.DeletePipelines(Utils.GetCustomizedPipelineName(true));
+                    ADFOperations.DeletePipelines(Utils.GetCustomizedPipelineName(false));
 
-                    //Console.WriteLine("Delete status of Output Data sets: Start ");
+                    Console.WriteLine("Deleted Pipelines : End ");
 
-                    //ADFOperations.DeleteDatasets("SC_DSO_D_DSSnowdropLive");
+                    Console.WriteLine("Deleting the Data Sets now : Start ");
 
-                    Console.WriteLine("Deleted Output Data set: End ");
+
+                    ADFOperations.DeleteDatasets(Utils.GetCustomizedInputDataSetName(true));
+                    ADFOperations.DeleteDatasets(Utils.GetCustomizedOutputDataSetName(true));
+
+
+                    ADFOperations.DeleteDatasets(Utils.GetCustomizedInputDataSetName(false));
+                    ADFOperations.DeleteDatasets(Utils.GetCustomizedOutputDataSetName(false));
+
+
+                    Console.WriteLine("Deleted Data Seta : End ");
 
                 }
+                
 
-                //ADFOperations.DeletePipelines("SC_DSO_H_PreProd_");
-                //ADFOperations.DeletePipelines("SC_DSI_H_PreProd_");
+                Console.WriteLine("Completed the process in Microsoft Windows Azure");
 
-                //ADFOperations.DeleteDatasets("SC_DSO_H_PreProd_");
-                //ADFOperations.DeleteDatasets("SC_DSI_H_PreProd_");
-                ////ADFOperations.DeleteDatasets("SC_DSI_H_PreProd_");
-                //ADFOperations.DeleteDatasets("SC_DSI_D_PreProd_");
-
-
-                Console.WriteLine("Completed the process of deploying ADF in azure");
-                Console.ReadLine();
+                Console.ReadLine();                
             }
             catch(Exception ex)
             {
-                Console.WriteLine("Some exception occured: {0}", ex.Message);
+                Console.WriteLine("Some exception while working with Azure Environment : {0}", ex.Message);
                 Console.ReadLine();
             }
         }
@@ -109,6 +121,7 @@ namespace StreamCentral.ADLSIntegration
             }
             catch (Exception ex)
             {
+                Console.WriteLine("Unable to read the data source rooth path : " + ex.Message);
             }
            
         }
@@ -131,8 +144,7 @@ namespace StreamCentral.ADLSIntegration
                     {
                         arguments = arg.Split(':');
 
-                       SetCommandLinePropertyValues(arguments[0], arguments[1]);
-                        
+                       SetCommandLinePropertyValues(arguments[0], arguments[1]);                        
                     }                  
                 }
                 catch(Exception ex)
@@ -262,6 +274,31 @@ namespace StreamCentral.ADLSIntegration
                         Console.WriteLine("Temporary Component Name prefix entered: " + InitialParams.TempCompPrefix);
                         break;
                     }
+                case nameof(InputCommandLineArgs.pipelinename):
+                    {
+                        InitialParams.DeletePipelineName = propertyValue;
+                        Console.WriteLine("Pipeline Name to be deleted entered: " + InitialParams.DeletePipelineName);
+                        break;
+                    }
+                case nameof(InputCommandLineArgs.inputds):
+                    {
+                        InitialParams.DeleteInputDataSetName = propertyValue;
+                        Console.WriteLine("Input Data set to be deleted entered: " + InitialParams.DeleteInputDataSetName);
+                        break;
+                    }
+                case nameof(InputCommandLineArgs.outputds):
+                    {
+                        InitialParams.DeleteOutputDataSetName = propertyValue;
+                        Console.WriteLine("Output Data set to be deleted entered: " + InitialParams.DeleteOutputDataSetName);
+                        break;
+                    }
+                case nameof(InputCommandLineArgs.sourcetype):
+                    {
+                        InitialParams.SourceStructureType = Utils.GetSourceStructureType(propertyValue);
+                        Console.WriteLine("Source Structure Type defined : " + InitialParams.SourceStructureType);
+                        break;
+                    }
+
             }
         }
 
@@ -276,7 +313,7 @@ namespace StreamCentral.ADLSIntegration
                 }
                 catch (IndexOutOfRangeException ex)
                 {
-                    Console.WriteLine("Please provide the command line arguments to proceed: deployCriteria,dataSourceName, tableName, folderPath, filterDateTimeField, filterDateTimeInterval");
+                    Console.WriteLine("Please provide the command line arguments to proceed: deployCriteria,dataSourceName, tableName, folderPath, filterDateTimeField, filterDateTimeInterval : " + ex.Message);
                     return;
                 }
 
@@ -306,7 +343,7 @@ namespace StreamCentral.ADLSIntegration
                     }
                     catch (IndexOutOfRangeException ex)
                     {
-                        Console.WriteLine("Please provide the command line arguments to proceed: dataSourceName, tableName, folderPath, filterDateTimeField, filterDateTimeInterval");
+                        Console.WriteLine("Please provide the command line arguments to proceed: dataSourceName, tableName, folderPath, filterDateTimeField, filterDateTimeInterval : " +ex.Message);
                     }
 
                     //specify the name of the table for which the ETL to be configured.
@@ -317,7 +354,7 @@ namespace StreamCentral.ADLSIntegration
                     }
                     catch (IndexOutOfRangeException ex)
                     {
-                        Console.WriteLine("Please provide the command line arguments to proceed: dataSourceName, tableName, folderPath, filterDateTimeField, filterDateTimeInterval");
+                        Console.WriteLine("Please provide the command line arguments to proceed: dataSourceName, tableName, folderPath, filterDateTimeField, filterDateTimeInterval : " + ex.Message);
                     }
 
                     //specify the root path of ADLS
@@ -328,7 +365,7 @@ namespace StreamCentral.ADLSIntegration
                     }
                     catch (IndexOutOfRangeException ex)
                     {
-                        Console.WriteLine("Please provide the command line arguments to proceed: dataSourceName, tableName, folderPath, filterDateTimeField, filterDateTimeInterval");
+                        Console.WriteLine("Please provide the command line arguments to proceed: dataSourceName, tableName, folderPath, filterDateTimeField, filterDateTimeInterval : " + ex.Message);
                     }
 
                     //Used to specify the time interval field that shall be used to slice the data in ETL process. 
@@ -340,7 +377,7 @@ namespace StreamCentral.ADLSIntegration
                     }
                     catch (IndexOutOfRangeException ex)
                     {
-                        Console.WriteLine("Please provide the command line arguments to proceed: dataSourceName, tableName, folderPath, filterDateTimeField, filterDateTimeInterval");
+                        Console.WriteLine("Please provide the command line arguments to proceed: dataSourceName, tableName, folderPath, filterDateTimeField, filterDateTimeInterval : " + ex.Message);
                     }
 
                     //Used to configure the schedule time interval for the Pipeline to run the activity
@@ -351,7 +388,7 @@ namespace StreamCentral.ADLSIntegration
                     }
                     catch (IndexOutOfRangeException ex)
                     {
-                        Console.WriteLine("Please provide the command line arguments to proceed: dataSourceName, tableName, folderPath, filterDateTimeField, filterDateTimeInterval");
+                        Console.WriteLine("Please provide the command line arguments to proceed: dataSourceName, tableName, folderPath, filterDateTimeField, filterDateTimeInterval :" + ex.Message);
                     }
 
                     //Used to configure the schedule time interval for the Pipeline to run the activity
@@ -362,7 +399,7 @@ namespace StreamCentral.ADLSIntegration
                     }
                     catch (IndexOutOfRangeException ex)
                     {
-                        Console.WriteLine("Please provide the command line arguments to proceed: dataSourceName, tableName, folderPath, filterDateTimeField, filterDateTimeInterval");
+                        Console.WriteLine("Please provide the command line arguments to proceed: dataSourceName, tableName, folderPath, filterDateTimeField, filterDateTimeInterval : " + ex.Message);
                     }
 
                     //used for ETL of distinct records.
@@ -373,7 +410,7 @@ namespace StreamCentral.ADLSIntegration
                     }
                     catch (IndexOutOfRangeException ex)
                     {
-                        Console.WriteLine("Please provide the command line arguments to proceed: dataSourceName, tableName, folderPath, filterDateTimeField, filterDateTimeInterval");
+                        Console.WriteLine("Please provide the command line arguments to proceed: dataSourceName, tableName, folderPath, filterDateTimeField, filterDateTimeInterval : " + ex.Message);
                     }
 
                     try
@@ -384,7 +421,7 @@ namespace StreamCentral.ADLSIntegration
                     }
                     catch (IndexOutOfRangeException ex)
                     {
-                        Console.WriteLine("Please provide the command line arguments to proceed: dataSourceName, tableName, folderPath, filterDateTimeField, filterDateTimeInterval");
+                        Console.WriteLine("Please provide the command line arguments to proceed: dataSourceName, tableName, folderPath, filterDateTimeField, filterDateTimeInterval :" + ex.Message);
                     }
 
                     try
@@ -394,7 +431,7 @@ namespace StreamCentral.ADLSIntegration
                     }
                     catch (IndexOutOfRangeException ex)
                     {
-                        Console.WriteLine("Please provide the command line arguments to proceed: dataSourceName, tableName, folderPath, filterDateTimeField, filterDateTimeInterval");
+                        Console.WriteLine("Please provide the command line arguments to proceed: dataSourceName, tableName, folderPath, filterDateTimeField, filterDateTimeInterval : " + ex.Message);
                     }
 
                     try
@@ -404,7 +441,7 @@ namespace StreamCentral.ADLSIntegration
                     }
                     catch (IndexOutOfRangeException ex)
                     {
-                        Console.WriteLine("Please provide the command line arguments to proceed: dataSourceName, tableName, folderPath, filterDateTimeField, filterDateTimeInterval");
+                        Console.WriteLine("Please provide the command line arguments to proceed: dataSourceName, tableName, folderPath, filterDateTimeField, filterDateTimeInterval :" + ex.Message);
                     }
 
                     try
@@ -414,7 +451,7 @@ namespace StreamCentral.ADLSIntegration
                     }
                     catch (IndexOutOfRangeException ex)
                     {
-                        Console.WriteLine("Please provide the command line arguments to proceed: dataSourceName, tableName, folderPath, filterDateTimeField, filterDateTimeInterval");
+                        Console.WriteLine("Please provide the command line arguments to proceed: dataSourceName, tableName, folderPath, filterDateTimeField, filterDateTimeInterval : "  + ex.Message);
                     }
 
 
@@ -426,7 +463,7 @@ namespace StreamCentral.ADLSIntegration
                     }
                     catch (IndexOutOfRangeException ex)
                     {
-                        Console.WriteLine("Please provide the command line arguments to proceed: dataSourceName, tableName, folderPath, filterDateTimeField, filterDateTimeInterval");
+                        Console.WriteLine("Please provide the command line arguments to proceed: dataSourceName, tableName, folderPath, filterDateTimeField, filterDateTimeInterval: " + ex.Message);
                     }
 
 

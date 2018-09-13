@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Configuration;
 
 namespace StreamCentral.ADLSIntegration
 {
@@ -59,15 +60,14 @@ namespace StreamCentral.ADLSIntegration
             {
                 dsType = "CoinsSQL";
             }
-            else if(tableName.ToLower().Contains("pocbdl") || tableName.ToLower().Contains("bdl"))
+            else if (tableName.ToLower().Contains("pocbdl") || tableName.ToLower().Contains("bdl"))
             {
                 dsType = "CMT";
-            }           
+            }
             else
             {
                 dsType = tableName;
             }
-
             return dsType;
         }
 
@@ -86,19 +86,19 @@ namespace StreamCentral.ADLSIntegration
             {
                 case "all":
                     {
-                        return CopyOnPremSQLToADLAType.All;                        
+                        return CopyOnPremSQLToADLAType.All;
                     }
                 case "transactional":
                     {
-                        return CopyOnPremSQLToADLAType.Transactional;                        
+                        return CopyOnPremSQLToADLAType.Transactional;
                     }
                 case "distinct":
                     {
-                        return CopyOnPremSQLToADLAType.Distinct;                        
+                        return CopyOnPremSQLToADLAType.Distinct;
                     }
                 case "lastiteration":
                     {
-                        return CopyOnPremSQLToADLAType.LastIteration;                        
+                        return CopyOnPremSQLToADLAType.LastIteration;
                     }
                 default:
                     return CopyOnPremSQLToADLAType.All;
@@ -107,11 +107,11 @@ namespace StreamCentral.ADLSIntegration
 
         public static Frequency GetDSActivityFrequency(string frequency)
         {
-            switch(frequency.ToLower())
+            switch (frequency.ToLower())
             {
                 case "year":
                     {
-                        return Frequency.Year;                        
+                        return Frequency.Year;
                     }
                 case "month":
                     {
@@ -136,9 +136,9 @@ namespace StreamCentral.ADLSIntegration
 
         public static SliceType GetSliceType(string value)
         {
-            if(!String.IsNullOrEmpty(value))
+            if (!String.IsNullOrEmpty(value))
             {
-                if(value.Equals(SliceType.Start.ToString().ToLower()))
+                if (value.Equals(SliceType.Start.ToString().ToLower()))
                 {
                     return SliceType.Start;
                 }
@@ -150,7 +150,119 @@ namespace StreamCentral.ADLSIntegration
             return SliceType.End;
         }
 
-    }
+        public static string GetCustomizedCompPrefixForFolderPath(string compPrefix)
+        {
+            string compPrefixPath;
+            if (!string.IsNullOrEmpty(compPrefix))
+            {
 
-  
+                compPrefixPath = compPrefix.Remove(compPrefix.Length - 1, 1);
+                compPrefixPath = compPrefixPath + "/";
+                return compPrefixPath;
+            }
+            return compPrefix;
+        }
+
+        public static string GetCustomizedInputOutRefName()
+        {
+            string InOutRefName;
+            InOutRefName = String.Format(InitialParams.ActivityFrequencyInterval + InitialParams.ActivityFrequencyType + "_" +
+                InitialParams.OnPremiseADLAType.ToString() + "_" + InitialParams.TablePathInADLS);
+
+            return InOutRefName;
+        }
+
+        public static String GetCustomizedInputDataSetName(bool isHeader)
+        {
+            if (isHeader)
+            {
+                return String.Format(Constants._inputDSHeaderNameUnformatted, InitialParams.TempCompPrefix,InitialParams.Environment, GetCustomizedInputOutRefName());
+            }
+            return String.Format(Constants._inputDSDataNameUnformatted, InitialParams.TempCompPrefix, InitialParams.Environment, GetCustomizedInputOutRefName());
+        }
+
+        public static String GetCustomizedOutputDataSetName(bool isHeader)
+        {
+            if (isHeader)
+            {
+                return String.Format(Constants._outputDSHeaderNameUnformatted, InitialParams.TempCompPrefix, InitialParams.Environment, GetCustomizedInputOutRefName());
+            }
+            return String.Format(Constants._outputDSDataNameUnformatted, InitialParams.TempCompPrefix, InitialParams.Environment, GetCustomizedInputOutRefName());
+
+        }
+
+        public static String GetCustomizedPipelineName(bool isHeader)
+        {
+            if (isHeader)
+            {
+                return String.Format(Constants._pipelineHeaderNameUnformatted, InitialParams.TempCompPrefix, InitialParams.Environment, GetCustomizedInputOutRefName());
+            }
+            return String.Format(Constants._pipelineDataNameUnformatted, InitialParams.TempCompPrefix, InitialParams.Environment, GetCustomizedInputOutRefName()) ;
+        }
+
+        public static string GetCustomizedActivityName(bool isHeader)
+        {
+            if (isHeader)
+            {
+                return String.Format(Constants._pipelineHeaderNameUnformatted, InitialParams.TempCompPrefix, InitialParams.Environment, GetCustomizedInputOutRefName());
+            }
+            return String.Format(Constants._pipelineDataNameUnformatted, InitialParams.TempCompPrefix, InitialParams.Environment, GetCustomizedInputOutRefName());
+        }
+
+        public static string GetCustomizedFileName(bool isHeader)
+        {
+
+            String fileName = String.Empty;
+
+            if (isHeader)
+            {
+                fileName= String.Format(Constants._headerFileNameUnformatted,GetCustomizedInputOutRefName());
+                return fileName;
+            }
+
+            if (InitialParams.OnPremiseADLAType.Equals(CopyOnPremSQLToADLAType.Distinct) ||
+                    InitialParams.OnPremiseADLAType.Equals(CopyOnPremSQLToADLAType.All) ||
+                    InitialParams.OnPremiseADLAType.Equals(CopyOnPremSQLToADLAType.Flattened) ||
+                    InitialParams.OnPremiseADLAType.Equals(CopyOnPremSQLToADLAType.LastIteration))
+            {
+                fileName = String.Format(Constants._dataFileNameUnformatted);
+            }
+            else
+            {
+                fileName = String.Format(Constants._dataFileNameTransactionalUnformatted, GetCustomizedInputOutRefName());
+            }
+            return fileName; ;
+        }
+
+        public static string GetCustomizedFolderPath()
+        {
+            return String.Format("{0}/{4}DL-{1}/{2}/{3}", InitialParams.FolderPath,
+                    InitialParams.DataSourcePathInADLS, InitialParams.TablePathInADLS, GetCustomizedInputOutRefName(),
+                    InitialParams.TempPathDeviation);
+        }
+
+        public static EnumSourceStructureType GetSourceStructureType(string value)
+        {
+            string sourceStructureType = String.Empty;
+
+            if (!String.IsNullOrEmpty(value))
+            {
+                sourceStructureType = value;
+            }
+            else if (!String.IsNullOrEmpty(ConfigurationManager.AppSettings["sourceType"]))
+            {
+                sourceStructureType = ConfigurationManager.AppSettings["sourceType"];
+            }
+
+            if (sourceStructureType.ToLower().Contains(EnumSourceStructureType.OnPremiseSQLServer.ToString().ToLower()))
+            {
+                return EnumSourceStructureType.OnPremiseSQLServer;
+            }
+            else
+            {
+                return EnumSourceStructureType.AzureSQLServer;
+            }
+        }
+
+    } 
 }

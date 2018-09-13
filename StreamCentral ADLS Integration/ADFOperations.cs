@@ -20,22 +20,22 @@ namespace StreamCentral.ADLSIntegration
     {
 
         //IMPORTANT: specify the name of Azure resource group here
-        public static string resourceGroupName = ConfigurationSettings.AppSettings["resourceGroupName"];
+        public static string resourceGroupName = ConfigurationManager.AppSettings["resourceGroupName"];// ConfigurationManager.AppSettings["resourceGroupName"];
 
         //IMPORTANT: the name of the data factory must be globally unique.
-        public static string dataFactoryName = ConfigurationSettings.AppSettings["dataFactoryName"];
+        public static string dataFactoryName = ConfigurationManager.AppSettings["dataFactoryName"];
 
         //IMPORTANT: specify the name of the source linked Service
-        public static string linkedServiceNameSource = ConfigurationSettings.AppSettings["linkedServiceNameSource"];
+        public static string linkedServiceNameSource = ConfigurationManager.AppSettings["linkedServiceNameSource"];
 
         //IMPORTANT: specify the name of the destination linked Service. These linked services have already been created in our SC - scenario.
-        public static string linkedServiceNameDestination = ConfigurationSettings.AppSettings["linkedServiceNameDestination"];
+        public static string linkedServiceNameDestination = ConfigurationManager.AppSettings["linkedServiceNameDestination"];
 
         //IMPORTANT: specify the CGS ADF Hub Name
-        public static string cgsHubName = ConfigurationSettings.AppSettings["cgsHubName"];
+        public static string cgsHubName = ConfigurationManager.AppSettings["cgsHubName"];
 
         //IMPORTANT: specify the name of the main container of the Destination Lake Store.
-        public static string folderPath = ConfigurationSettings.AppSettings["folderPath"];
+        public static string folderPath = ConfigurationManager.AppSettings["folderPath"];
 
         public static string dataSourceType = string.Empty;
         
@@ -50,10 +50,10 @@ namespace StreamCentral.ADLSIntegration
         {
 
             //IMPORTANT: generate security token for the subsciption and AAD App
-            TokenCloudCredentials aadTokenCredentials = new TokenCloudCredentials(ConfigurationSettings.AppSettings["SubscriptionId"],
+            TokenCloudCredentials aadTokenCredentials = new TokenCloudCredentials(ConfigurationManager.AppSettings["SubscriptionId"],
                     GetAuthorizationHeader().Result);
 
-            Uri resourceManagerUri = new Uri(ConfigurationSettings.AppSettings["ResourceManagerEndpoint"]);
+            Uri resourceManagerUri = new Uri(ConfigurationManager.AppSettings["ResourceManagerEndpoint"]);
 
             // create data factory management client
             client = new DataFactoryManagementClient(aadTokenCredentials, resourceManagerUri);
@@ -61,12 +61,12 @@ namespace StreamCentral.ADLSIntegration
             return client;
         }
 
-        public static string getClientToken()
+        public static string GetClientToken()
         {
             string token = string.Empty;
 
             //IMPORTANT: generate security token for the subsciption and AAD App
-            TokenCloudCredentials aadTokenCredentials = new TokenCloudCredentials(ConfigurationSettings.AppSettings["SubscriptionId"],
+            TokenCloudCredentials aadTokenCredentials = new TokenCloudCredentials(ConfigurationManager.AppSettings["SubscriptionId"],
                     GetAuthorizationHeader().Result);
 
             return aadTokenCredentials.Token;
@@ -129,7 +129,7 @@ namespace StreamCentral.ADLSIntegration
             
             string dateTimeField = (String.IsNullOrEmpty(InitialParams.FilterDateTimeField) ? "recorddateutc" : InitialParams.FilterDateTimeField);
 
-            folderPath = (String.IsNullOrEmpty(folderPath) ? ConfigurationSettings.AppSettings["folderPath"] : folderPath);
+            folderPath = (String.IsNullOrEmpty(folderPath) ? ConfigurationManager.AppSettings["folderPath"] : folderPath);
             
 
             firstDateTimeRecordInTable = ADFOperations.FetchFirstRowRecordDate(InitialParams.TableName, InitialParams.FilterDateTimeField);
@@ -144,18 +144,16 @@ namespace StreamCentral.ADLSIntegration
 
                 string sqlQuery = ADFOperations.GenerateADFPipelineSQLQuery(lstElements, dateTimeField, false, cpType);
 
-                string InOutDataSetNameRef = InitialParams.TablePathInADLS + "_" + cpType.ToString();
+                string InOutDataSetNameRef = Utils.GetCustomizedInputOutRefName();
                   
                 Console.WriteLine("Deploying data sets and pipelines for Headers");
 
-                string inDataSetName = String.Format("SC-{2}_DSI_H_{0}_{1}",InitialParams.Environment,InOutDataSetNameRef,InitialParams.TempCompPrefix);                    
-                string outDataSetName =String.Format("SC-{2}_DSO_H_{0}_{1}", InitialParams.Environment, InOutDataSetNameRef, InitialParams.TempCompPrefix);
-                string pipelineName = String.Format("SC-{2}_PL01_H_{0}_{1}", InitialParams.Environment,InOutDataSetNameRef, InitialParams.TempCompPrefix);
-                string activityName = String.Format("Act-{2}_H_{0}_{1}", InitialParams.Environment, InOutDataSetNameRef, InitialParams.TempCompPrefix);
-                string fileName = "Header_" + InOutDataSetNameRef;
-                string folderpath = String.Format("{0}/{5}/DL-{1}/{4}/{2}/{3}", InitialParams.FolderPath,
-                    InitialParams.DataSourcePathInADLS, InitialParams.TablePathInADLS, InOutDataSetNameRef,InitialParams.TempCompPrefix,
-                    InitialParams.TempPathDeviation);
+                string inDataSetName = Utils.GetCustomizedInputDataSetName(true);
+                string outDataSetName = Utils.GetCustomizedOutputDataSetName(true);
+                string pipelineName = Utils.GetCustomizedPipelineName(true);
+                string activityName = Utils.GetCustomizedActivityName(true);
+                string fileName = Utils.GetCustomizedFileName(true);
+                string folderpath = Utils.GetCustomizedFolderPath();
 
                 DeployDatasetAndPipelines(pipelineName,activityName, inDataSetName, outDataSetName, tableName,
                     lstElements, fileName, folderpath, sqlQuery, firstDateTimeRecordInTable, false,cpType);
@@ -163,28 +161,16 @@ namespace StreamCentral.ADLSIntegration
                 Console.WriteLine("Deployed data sets and pipelines for headers");
                 
                 //re: OUTPUT DATASET - Prepare the SQL query required for pipeline to execute on Source System
-
                 sqlQuery = ADFOperations.GenerateADFPipelineSQLQuery(lstElements, dateTimeField, true,cpType);
 
                 Console.WriteLine("Deploying data sets and pipelines for data");
 
-                inDataSetName = String.Format("SC-{2}_DSI_D_{0}_{1}", InitialParams.Environment, InOutDataSetNameRef, InitialParams.TempCompPrefix);
-                outDataSetName = String.Format("SC-{2}_DSO_D_{0}_{1}", InitialParams.Environment, InOutDataSetNameRef, InitialParams.TempCompPrefix);
-                pipelineName = String.Format("SC-{2}_PL01_D_{0}_{1}", InitialParams.Environment, InOutDataSetNameRef, InitialParams.TempCompPrefix);
-                activityName = String.Format("Act-{2}_D_{0}_{1}", InitialParams.Environment, InOutDataSetNameRef, InitialParams.TempCompPrefix);
+                inDataSetName = Utils.GetCustomizedInputDataSetName(false);
+                outDataSetName = Utils.GetCustomizedOutputDataSetName(false);
+                pipelineName = Utils.GetCustomizedPipelineName(false);
+                activityName = Utils.GetCustomizedActivityName(false);
+                fileName = Utils.GetCustomizedFileName(false);
 
-                if (cpType.Equals(CopyOnPremSQLToADLAType.Distinct) || 
-                    cpType.Equals(CopyOnPremSQLToADLAType.All) || 
-                    cpType.Equals(CopyOnPremSQLToADLAType.Flattened) ||
-                    cpType.Equals(CopyOnPremSQLToADLAType.LastIteration))
-                {
-                    fileName = "Data_" + InOutDataSetNameRef;
-                }
-                else
-                {
-                    fileName = "Data_" + InOutDataSetNameRef + "-{year}-{month}-{day}-{hour}-{minute}";
-                }
-                
                 DeployDatasetAndPipelines(pipelineName,activityName, inDataSetName, outDataSetName, tableName, 
                     lstElements, fileName, folderpath, sqlQuery, firstDateTimeRecordInTable, true,cpType);
 
@@ -207,7 +193,7 @@ namespace StreamCentral.ADLSIntegration
                 DatasetGetResponse respGetInDatasets = client.Datasets.Get(resourceGroupName, dataFactoryName, inDataSetName);
                 dsInput = respGetInDatasets.Dataset;
             }
-            catch (Exception ex) { }
+            catch (Exception ex) { Console.WriteLine("Unable to find the Input dataset: Will look to create new"); }
 
             if (dsInput == null)
             {
@@ -220,7 +206,7 @@ namespace StreamCentral.ADLSIntegration
                 DatasetGetResponse respGetOutDatasets = client.Datasets.Get(resourceGroupName, dataFactoryName, outDataSetName);
                 dsOutput = respGetOutDatasets.Dataset;
             }
-            catch (Exception ex) { }
+            catch (Exception ex) { Console.WriteLine("Unable to find the Output dataset: Will look to create new"); }
 
             if (dsOutput == null)
             {
@@ -237,12 +223,12 @@ namespace StreamCentral.ADLSIntegration
 
         public static async Task<string> GetAuthorizationHeader()
         {
-            AuthenticationContext context = new AuthenticationContext(ConfigurationSettings.AppSettings["ActiveDirectoryEndpoint"] + ConfigurationSettings.AppSettings["ActiveDirectoryTenantId"]);
+            AuthenticationContext context = new AuthenticationContext(ConfigurationManager.AppSettings["ActiveDirectoryEndpoint"] + ConfigurationManager.AppSettings["ActiveDirectoryTenantId"]);
             ClientCredential credential = new ClientCredential(
-                ConfigurationSettings.AppSettings["ApplicationId"],
-                ConfigurationSettings.AppSettings["Password"]);
+                ConfigurationManager.AppSettings["ApplicationId"],
+                ConfigurationManager.AppSettings["Password"]);
             AuthenticationResult result = await context.AcquireTokenAsync(
-                resource: ConfigurationSettings.AppSettings["WindowsManagementUri"],
+                resource: ConfigurationManager.AppSettings["WindowsManagementUri"],
                 clientCredential: credential);
 
             if (result != null)
@@ -295,6 +281,17 @@ namespace StreamCentral.ADLSIntegration
             // create input datasets
             Console.WriteLine("Creating input dataset - " + datasetSource);
 
+            DatasetTypeProperties objInputDSProp;
+            
+            if (InitialParams.SourceStructureType.ToString().ToLower().Contains("onprem"))
+            {
+                objInputDSProp = new SqlServerTableDataset() { TableName = sourceStructureName };                                
+            }
+            else
+            {
+                objInputDSProp =new AzureSqlTableDataset() { TableName = sourceStructureName };
+            }
+            
             Availability objAvailability = GetFormattedAvailabilityInstance(isDataDeploy);
 
             try
@@ -309,12 +306,7 @@ namespace StreamCentral.ADLSIntegration
                             Properties = new DatasetProperties()
                             {
                                 LinkedServiceName = linkedServiceName,
-
-                                TypeProperties = new SqlServerTableDataset()
-                                {
-                                    TableName = sourceStructureName
-                                },
-
+                                TypeProperties = objInputDSProp,
                                 Structure = InputParams,
                                 External = true,
                                 Availability = objAvailability,
@@ -501,7 +493,7 @@ namespace StreamCentral.ADLSIntegration
             }
             catch (Exception ex)
             {
-
+                throw ex;
             }
         }
 
@@ -542,10 +534,13 @@ namespace StreamCentral.ADLSIntegration
                     mode = PipelineMode.Scheduled;
                 }
 
-                Scheduler objActivityScheduler = new Scheduler();
+                Scheduler objActivityScheduler = new Scheduler()
+                {
+                    Interval = Convert.ToUInt16(InitialParams.ActivityFrequencyInterval)
+                };
+                         
 
-                objActivityScheduler.Interval = Convert.ToUInt16(InitialParams.ActivityFrequencyInterval);
-
+                
                 if (isDataDeploy)
                 {
                     objActivityScheduler.Offset = TimeSpan.FromMinutes(Convert.ToDouble(InitialParams.OffsetIntervalOfDataSlice));
@@ -700,8 +695,11 @@ namespace StreamCentral.ADLSIntegration
                 SqlConnection connect = SQLUtils.SQLConnect();
 
                 // SqlCommand cmd = SQLUtils.GenerateStoredProcCommand("SCDMTableSchemaProc", tableName);
-                SqlCommand cmd = new SqlCommand(ConfigurationSettings.AppSettings["SCDMTableSchemaProc"], connect);
-                cmd.CommandType = CommandType.StoredProcedure;
+                SqlCommand cmd = new SqlCommand(ConfigurationManager.AppSettings["SCDMTableSchemaProc"], connect)
+                {
+                    CommandType = CommandType.StoredProcedure
+                };
+                  
                 cmd.Parameters.Add(new SqlParameter("@TableName", tableName));
 
                 if (connect.State == ConnectionState.Closed)
@@ -741,6 +739,9 @@ namespace StreamCentral.ADLSIntegration
                                         break;
                                     case "datetime":
                                         type = "DateTime";
+                                        break;
+                                    case "nchar":
+                                        type = "String";
                                         break;
                                 }
 
@@ -818,7 +819,7 @@ namespace StreamCentral.ADLSIntegration
             }
             catch (Exception ex)
             {
-                throw;
+                throw ex;
             }
             return objAvailability;
         }
@@ -876,65 +877,7 @@ namespace StreamCentral.ADLSIntegration
             };
 
         
-        }
-
-        //public static string GenerateADFPipelineSQLQuery(string tableName, 
-        //    List<DataElement> inOutParams, string dateField, bool isDataQuery, CopyOnPremSQLToADLAType copyDataType)
-        //{
-        //    string sqlQuery = "$$Text.Format('select ";
-
-        //    int itemIteration = 0;
-        //    foreach (var columnName in inOutParams)
-        //    {
-        //        if (itemIteration < inOutParams.Count - 1)
-        //        {
-        //            sqlQuery = sqlQuery + "[" + columnName.Name + "],";
-        //            itemIteration = itemIteration + 1;
-        //        }
-        //        else
-        //        {
-        //            sqlQuery = sqlQuery + "[" + columnName.Name + "]";
-        //        }
-
-        //    }
-
-        //    if(!(isDataQuery && copyDataType.ToString() == CopyOnPremSQLToADLAType.All.ToString()))
-        //    {
-        //        sqlQuery = sqlQuery + " from " + tableName + " where [" + dateField + "] >= \\'{0:yyyy-MM-dd HH:mm}\\' AND  " +
-        //      " [" + dateField + "] < \\'{1:yyyy-MM-dd HH:mm}\\'', " +
-        //      "WindowStart, WindowEnd)";
-
-        //        return sqlQuery;
-        //    }
-
-        //    switch (copyDataType)
-        //    {
-        //        case CopyOnPremSQLToADLAType.LastIteration:
-        //            {
-
-        //                break;
-        //            }
-        //        case CopyOnPremSQLToADLAType.All:
-        //            {
-        //                sqlQuery = sqlQuery + " from " + tableName + "')";
-        //                break;
-        //            }
-        //        case CopyOnPremSQLToADLAType.Distinct:
-        //            {
-        //                break;
-        //            }
-        //        case CopyOnPremSQLToADLAType.Transactional:
-        //            {
-        //                sqlQuery = sqlQuery + " from " + tableName + " where [" + dateField + "] >= \\'{0:yyyy-MM-dd HH:mm}\\' AND  " +
-        //       " [" + dateField + "] < \\'{1:yyyy-MM-dd HH:mm}\\'', " +
-        //       "WindowStart, WindowEnd)";
-        //                break;
-        //            }
-        //    }
-                    
-
-        //    return sqlQuery;
-        //}
+        }       
 
         public static string GenerateADFPipelineSQLQuery(List<DataElement> inOutParams, string dateField, 
             bool isDataQuery, CopyOnPremSQLToADLAType copyDataType)
@@ -1130,6 +1073,8 @@ namespace StreamCentral.ADLSIntegration
             }
 
             return firstDateTime;
-        }
+        }  
+
+       
     }
 }
