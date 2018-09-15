@@ -330,13 +330,13 @@ namespace StreamCentral.ADLSIntegration
             {
                 if (invalidToken.Message.Contains("token") || invalidToken.Message.Contains("expir"))
                 {
-                    Console.WriteLine("Oops! Client Token Expired while creating Input Data set:" + invalidToken.Message);
+                    Console.WriteLine("Oops! Client Token Expired while creating Input Data set : " + invalidToken.Message);
                     client = CreateManagementClientInstance();
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine("Oops! Something went wrong in creating data set" + ex.Message);
+                Console.WriteLine("Oops! Something went wrong in creating data set : " + ex.Message);
             }
         }
 
@@ -430,7 +430,7 @@ namespace StreamCentral.ADLSIntegration
             }
         }
 
-        public static bool DeleteDatasets(string startWithSearchText)
+        public static bool DeleteDatasets(string searchText, EnumDeleteSearchType type)
         {
             try
             {
@@ -444,7 +444,7 @@ namespace StreamCentral.ADLSIntegration
 
                     foreach (var ds in respListDatasets.Datasets)
                     {
-                        DeleteDataset(ds.Name, startWithSearchText);
+                        DeleteDataset(ds.Name, searchText,type);
                     }
 
                     respListDatasets = client.Datasets.ListNext(nextLink);
@@ -461,18 +461,50 @@ namespace StreamCentral.ADLSIntegration
             return false;
         }
 
-        public static void DeleteDataset(string datasetName, string startWithSearchText)
+        public static void DeleteDataset(string datasetName, string searchText,EnumDeleteSearchType searchType)
         {
             try
             {
-                if (datasetName.StartsWith(startWithSearchText))
+                switch(searchType)
                 {
-                    Console.WriteLine("Deleting data set: " + datasetName);
+                    case EnumDeleteSearchType.Exact:
+                        {
+                            if(datasetName.ToLower() == searchText.ToLower())
+                            {
+                                Console.WriteLine("Deleting data set: " + datasetName);
 
-                    client.Datasets.Delete(resourceGroupName, dataFactoryName, datasetName);
+                                client.Datasets.Delete(resourceGroupName, dataFactoryName, datasetName);
 
-                    Console.WriteLine("Deleted data set: " + datasetName);
+                                Console.WriteLine("Deleted data set: " + datasetName);
+                            }
+                            break;
+                        }
+                    case EnumDeleteSearchType.Contains:
+                        {
+                            if (datasetName.Contains(searchText))
+                            {
+                                Console.WriteLine("Deleting data set: " + datasetName);
+
+                                client.Datasets.Delete(resourceGroupName, dataFactoryName, datasetName);
+
+                                Console.WriteLine("Deleted data set: " + datasetName);
+                            }
+                            break;
+                        }
+                    case EnumDeleteSearchType.StartWith:
+                        {
+                            if (datasetName.StartsWith(searchText))
+                            {
+                                Console.WriteLine("Deleting data set: " + datasetName);
+
+                                client.Datasets.Delete(resourceGroupName, dataFactoryName, datasetName);
+
+                                Console.WriteLine("Deleted data set: " + datasetName);
+                            }
+                            break;
+                        }
                 }
+                
             }
             catch (Exception ex)
             {

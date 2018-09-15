@@ -82,4 +82,11 @@ namespace StreamCentral.ADLSIntegration
         OnPremiseSQLServer,
         AzureSQLServer
     }
+
+    public enum EnumDeleteSearchType
+    {
+        Exact,
+        StartWith,
+        Contains            
+    }
 }

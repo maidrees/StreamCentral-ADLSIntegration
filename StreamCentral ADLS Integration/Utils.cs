@@ -204,9 +204,9 @@ namespace StreamCentral.ADLSIntegration
         {
             if (isHeader)
             {
-                return String.Format(Constants._pipelineHeaderNameUnformatted, InitialParams.TempCompPrefix, InitialParams.Environment, GetCustomizedInputOutRefName());
+                return String.Format(Constants._actHeaderNameUnformatted, InitialParams.TempCompPrefix, InitialParams.Environment, GetCustomizedInputOutRefName());
             }
-            return String.Format(Constants._pipelineDataNameUnformatted, InitialParams.TempCompPrefix, InitialParams.Environment, GetCustomizedInputOutRefName());
+            return String.Format(Constants._actDataNameUnformatted, InitialParams.TempCompPrefix, InitialParams.Environment, GetCustomizedInputOutRefName());
         }
 
         public static string GetCustomizedFileName(bool isHeader)
@@ -216,21 +216,17 @@ namespace StreamCentral.ADLSIntegration
 
             if (isHeader)
             {
-                fileName= String.Format(Constants._headerFileNameUnformatted,GetCustomizedInputOutRefName());
+                fileName= String.Format(Constants._headerFileNameUnformatted, InitialParams.TablePathInADLS);
                 return fileName;
             }
 
-            if (InitialParams.OnPremiseADLAType.Equals(CopyOnPremSQLToADLAType.Distinct) ||
-                    InitialParams.OnPremiseADLAType.Equals(CopyOnPremSQLToADLAType.All) ||
-                    InitialParams.OnPremiseADLAType.Equals(CopyOnPremSQLToADLAType.Flattened) ||
-                    InitialParams.OnPremiseADLAType.Equals(CopyOnPremSQLToADLAType.LastIteration))
-            {
-                fileName = String.Format(Constants._dataFileNameUnformatted);
+            fileName = String.Format(Constants._dataFileNameUnformatted,InitialParams.TablePathInADLS);
+
+            if (InitialParams.OnPremiseADLAType.Equals(CopyOnPremSQLToADLAType.Transactional))
+            { 
+                fileName = String.Concat(fileName + Constants._datafileNameTransactionalAppender);
             }
-            else
-            {
-                fileName = String.Format(Constants._dataFileNameTransactionalUnformatted, GetCustomizedInputOutRefName());
-            }
+            
             return fileName; ;
         }
 

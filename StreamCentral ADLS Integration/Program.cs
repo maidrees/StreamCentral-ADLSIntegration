@@ -41,7 +41,8 @@ namespace StreamCentral.ADLSIntegration
                 {
                     Console.WriteLine("Unable to read any input from command line. Executing statements after that now:" + ex.Message);
 
-                    ADFOperations.DeleteDatasets("SC-pp2_DSI_H_");
+                    ADFOperations.DeleteDatasets("DSDONSEEDTimesheetAdjudicationsThisWeek",EnumDeleteSearchType.Contains);
+                    //ADFOperations.DeleteDatasets("SC_DSI_H_live");
                 }
                 if (InitialParams.DeployCriteria.Equals("search"))
                 {
@@ -72,22 +73,21 @@ namespace StreamCentral.ADLSIntegration
                     Console.WriteLine("Deleting the Data Sets now : Start ");
 
 
-                    ADFOperations.DeleteDatasets(Utils.GetCustomizedInputDataSetName(true));
-                    ADFOperations.DeleteDatasets(Utils.GetCustomizedOutputDataSetName(true));
+                    ADFOperations.DeleteDatasets(Utils.GetCustomizedInputDataSetName(true),EnumDeleteSearchType.Exact);
+                    ADFOperations.DeleteDatasets(Utils.GetCustomizedOutputDataSetName(true),EnumDeleteSearchType.Exact);
 
 
-                    ADFOperations.DeleteDatasets(Utils.GetCustomizedInputDataSetName(false));
-                    ADFOperations.DeleteDatasets(Utils.GetCustomizedOutputDataSetName(false));
+                    ADFOperations.DeleteDatasets(Utils.GetCustomizedInputDataSetName(false),EnumDeleteSearchType.Exact);
+                    ADFOperations.DeleteDatasets(Utils.GetCustomizedOutputDataSetName(false),EnumDeleteSearchType.Exact);
 
 
                     Console.WriteLine("Deleted Data Seta : End ");
 
                 }
                 
-
                 Console.WriteLine("Completed the process in Microsoft Windows Azure");
 
-                Console.ReadLine();                
+               // Console.ReadLine();                
             }
             catch(Exception ex)
             {
