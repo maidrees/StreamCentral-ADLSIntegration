@@ -62,6 +62,8 @@ namespace StreamCentral.ADLSIntegration
 
         private static string _deleteOutputDataSetName = String.Empty;
 
+        private static EnumSourceType _sourceType = Utils.GetSourceType(String.Empty);
+
         private static EnumSourceStructureType _sourceStructureType = Utils.GetSourceStructureType(String.Empty);
 
         public static string FilterDistinctField
@@ -304,6 +306,16 @@ namespace StreamCentral.ADLSIntegration
             set { _deleteOutputDataSetName = value; }
         }
 
+        public static EnumSourceType SourceType
+        {
+            get { return _sourceType; }
+            set
+            {
+                _sourceType = value;
+            }
+
+        }
+
         public static EnumSourceStructureType SourceStructureType
         {
             get { return _sourceStructureType; }
@@ -311,7 +323,6 @@ namespace StreamCentral.ADLSIntegration
             {
                 _sourceStructureType = value;
             }
-
         }
     }
 }

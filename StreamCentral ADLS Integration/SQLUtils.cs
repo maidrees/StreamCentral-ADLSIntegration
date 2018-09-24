@@ -57,7 +57,7 @@ namespace StreamCentral.ADLSIntegration
              };                 
 
             return cmd;
-        }
+        }      
     }
 
 }

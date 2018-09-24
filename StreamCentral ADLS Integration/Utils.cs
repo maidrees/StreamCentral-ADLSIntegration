@@ -237,27 +237,56 @@ namespace StreamCentral.ADLSIntegration
                     InitialParams.TempPathDeviation);
         }
 
-        public static EnumSourceStructureType GetSourceStructureType(string value)
+        public static EnumSourceType GetSourceType(string value)
         {
-            string sourceStructureType = String.Empty;
+            string sourceType = String.Empty;
 
             if (!String.IsNullOrEmpty(value))
             {
-                sourceStructureType = value;
+                sourceType = value;
             }
             else if (!String.IsNullOrEmpty(ConfigurationManager.AppSettings["sourceType"]))
             {
-                sourceStructureType = ConfigurationManager.AppSettings["sourceType"];
+                sourceType = ConfigurationManager.AppSettings["sourceType"];
             }
 
-            if (sourceStructureType.ToLower().Contains(EnumSourceStructureType.OnPremiseSQLServer.ToString().ToLower()))
+            if (EnumSourceType.OnPremiseSQLServer.ToString().ToLower().Contains(sourceType.ToLower()))
             {
-                return EnumSourceStructureType.OnPremiseSQLServer;
+                return EnumSourceType.OnPremiseSQLServer;
             }
             else
             {
-                return EnumSourceStructureType.AzureSQLServer;
+                return EnumSourceType.AzureSQLServer;
             }
+        }
+
+        public static EnumSourceStructureType GetSourceStructureType(string value)
+        {
+            String sourceStructureType = String.Empty;
+
+            if(!String.IsNullOrEmpty(value))
+            {
+                sourceStructureType = value;
+            }
+            else if (!String.IsNullOrEmpty(ConfigurationManager.AppSettings["sourceStructureType"]))
+            {
+                sourceStructureType = ConfigurationManager.AppSettings["sourceStructureType"];
+            }
+
+           
+            if (sourceStructureType.ToLower().Contains(EnumSourceStructureType.StoredProc.ToString().ToLower()))
+            {
+                return EnumSourceStructureType.StoredProc;
+            }
+            else if(sourceStructureType.ToLower().Contains(EnumSourceStructureType.TableView.ToString().ToLower()))
+            {
+                return EnumSourceStructureType.TableView;
+            }
+            else
+            {
+                return EnumSourceStructureType.Table;
+            }
+
         }
 
     } 

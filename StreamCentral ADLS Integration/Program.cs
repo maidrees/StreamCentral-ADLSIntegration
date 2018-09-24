@@ -84,6 +84,11 @@ namespace StreamCentral.ADLSIntegration
                     Console.WriteLine("Deleted Data Seta : End ");
 
                 }
+
+                if(InitialParams.DeployCriteria.Equals("bulk-copy"))
+                { 
+
+                }
                 
                 Console.WriteLine("Completed the process in Microsoft Windows Azure");
 
@@ -122,8 +127,7 @@ namespace StreamCentral.ADLSIntegration
             catch (Exception ex)
             {
                 Console.WriteLine("Unable to read the data source rooth path : " + ex.Message);
-            }
-           
+            }           
         }
 
         public static string ReadNextArgumentValue()
@@ -293,6 +297,13 @@ namespace StreamCentral.ADLSIntegration
                         break;
                     }
                 case nameof(InputCommandLineArgs.sourcetype):
+                    {
+                        InitialParams.SourceType = Utils.GetSourceType(propertyValue);
+                        Console.WriteLine("Source Type defined : " + InitialParams.SourceType);
+                        break;
+                    }
+
+                case nameof(InputCommandLineArgs.sourceStructureType):
                     {
                         InitialParams.SourceStructureType = Utils.GetSourceStructureType(propertyValue);
                         Console.WriteLine("Source Structure Type defined : " + InitialParams.SourceStructureType);

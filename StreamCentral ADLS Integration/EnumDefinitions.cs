@@ -68,7 +68,8 @@ namespace StreamCentral.ADLSIntegration
         pipelinename,
         inputds,
         outputds,
-        sourcetype
+        sourcetype,
+        sourceStructureType
     }
 
     public enum SliceType
@@ -77,7 +78,7 @@ namespace StreamCentral.ADLSIntegration
         End
     }
 
-    public enum EnumSourceStructureType
+    public enum EnumSourceType
     {
         OnPremiseSQLServer,
         AzureSQLServer
@@ -88,5 +89,12 @@ namespace StreamCentral.ADLSIntegration
         Exact,
         StartWith,
         Contains            
+    }
+
+    public enum EnumSourceStructureType
+    {
+        Table,
+        StoredProc,
+        TableView
     }
 }
