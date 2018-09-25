@@ -41,7 +41,7 @@ namespace StreamCentral.ADLSIntegration
                 {
                     Console.WriteLine("Unable to read any input from command line. Executing statements after that now:" + ex.Message);
 
-                    ADFOperations.DeleteDatasets("DSDONSEEDTimesheetAdjudicationsThisWeek",EnumDeleteSearchType.Contains);
+                    ADFV1Operations.DeleteDatasets("DSDONSEEDTimesheetAdjudicationsThisWeek",EnumDeleteSearchType.Contains);
                     //ADFOperations.DeleteDatasets("SC_DSI_H_live");
                 }
                 if (InitialParams.DeployCriteria.Equals("search"))
@@ -52,12 +52,12 @@ namespace StreamCentral.ADLSIntegration
                     searchText[1] = InitialParams.SearchText02;
                     searchText[2] = InitialParams.SearchText03;
 
-                    ADFOperations.DeployADFDataSetsAndPipelines(searchText);
+                    ADFV1Operations.DeployADFDataSetsAndPipelines(searchText);
                 }
 
                 if (InitialParams.DeployCriteria.Equals("exact"))
                 {
-                    ADFOperations.DeployADFDataSetsAndPipelines(InitialParams.OnPremiseADLAType);
+                    ADFV1Operations.DeployADFDataSetsAndPipelines(InitialParams.OnPremiseADLAType);
                 }
 
                 if (InitialParams.DeployCriteria.Equals("delete"))
@@ -65,20 +65,20 @@ namespace StreamCentral.ADLSIntegration
 
                     Console.WriteLine("Deleting the Pipelines : Start ");
 
-                    ADFOperations.DeletePipelines(Utils.GetCustomizedPipelineName(true));
-                    ADFOperations.DeletePipelines(Utils.GetCustomizedPipelineName(false));
+                    ADFV1Operations.DeletePipelines(Utils.GetCustomizedPipelineName(true));
+                    ADFV1Operations.DeletePipelines(Utils.GetCustomizedPipelineName(false));
 
                     Console.WriteLine("Deleted Pipelines : End ");
 
                     Console.WriteLine("Deleting the Data Sets now : Start ");
 
 
-                    ADFOperations.DeleteDatasets(Utils.GetCustomizedInputDataSetName(true),EnumDeleteSearchType.Exact);
-                    ADFOperations.DeleteDatasets(Utils.GetCustomizedOutputDataSetName(true),EnumDeleteSearchType.Exact);
+                    ADFV1Operations.DeleteDatasets(Utils.GetCustomizedInputDataSetName(true),EnumDeleteSearchType.Exact);
+                    ADFV1Operations.DeleteDatasets(Utils.GetCustomizedOutputDataSetName(true),EnumDeleteSearchType.Exact);
 
 
-                    ADFOperations.DeleteDatasets(Utils.GetCustomizedInputDataSetName(false),EnumDeleteSearchType.Exact);
-                    ADFOperations.DeleteDatasets(Utils.GetCustomizedOutputDataSetName(false),EnumDeleteSearchType.Exact);
+                    ADFV1Operations.DeleteDatasets(Utils.GetCustomizedInputDataSetName(false),EnumDeleteSearchType.Exact);
+                    ADFV1Operations.DeleteDatasets(Utils.GetCustomizedOutputDataSetName(false),EnumDeleteSearchType.Exact);
 
 
                     Console.WriteLine("Deleted Data Seta : End ");
@@ -92,7 +92,7 @@ namespace StreamCentral.ADLSIntegration
                 
                 Console.WriteLine("Completed the process in Microsoft Windows Azure");
 
-               // Console.ReadLine();                
+                Console.ReadLine();                
             }
             catch(Exception ex)
             {

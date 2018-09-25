@@ -10,13 +10,12 @@ using Microsoft.Azure;
 using Microsoft.Azure.Management.DataFactories;
 using Microsoft.Azure.Management.DataFactories.Models;
 using Microsoft.Azure.Management.DataFactories.Common.Models;
-
 using Microsoft.IdentityModel.Clients.ActiveDirectory;
 
 
 namespace StreamCentral.ADLSIntegration
 {
-    public class ADFOperations
+    public class ADFV1Operations
     {
 
         //IMPORTANT: specify the name of Azure resource group here
@@ -41,7 +40,7 @@ namespace StreamCentral.ADLSIntegration
         
         public static DataFactoryManagementClient client;
 
-        static ADFOperations()
+        static ADFV1Operations()
         {
             CreateManagementClientInstance();
         }
@@ -76,7 +75,7 @@ namespace StreamCentral.ADLSIntegration
         public static void DeployADFDataSetsAndPipelines()
         {
 
-            List<string> tableNames = ADFOperations.ListFilteredTableNames();
+            List<string> tableNames = ADFV1Operations.ListFilteredTableNames();
 
             foreach (string tableName in tableNames)
             {
@@ -92,7 +91,7 @@ namespace StreamCentral.ADLSIntegration
         //Create Data Sets and Pipelines - Deploy these in Azure Data Factory for a all structures in the source system.
         public static void DeployADFDataSetsAndPipelines(string [] searchTexts)
         {
-            List<string> tableNames = ADFOperations.ListFilteredTableNames(searchTexts);
+            List<string> tableNames = ADFV1Operations.ListFilteredTableNames(searchTexts);
 
             //tableNames.Reverse();
 
@@ -118,7 +117,7 @@ namespace StreamCentral.ADLSIntegration
             }
 
             //List the attribute, data type of each column
-            List<DataElement> lstElements = ADFOperations.GenerateStructure(InitialParams.TableName);
+            List<DataElement> lstElements = ADFV1Operations.GenerateStructure(InitialParams.TableName);
 
             //if (System.String.IsNullOrEmpty(InitialParams.DataSourcePathInADLS))
             //{
@@ -131,18 +130,17 @@ namespace StreamCentral.ADLSIntegration
             folderPath = (String.IsNullOrEmpty(folderPath) ? ConfigurationManager.AppSettings["folderPath"] : folderPath);
             
 
-            firstDateTimeRecordInTable = ADFOperations.FetchFirstRowRecordDate(InitialParams.TableName, InitialParams.FilterDateTimeField);
+            firstDateTimeRecordInTable = ADFV1Operations.FetchFirstRowRecordDate(InitialParams.TableName, InitialParams.FilterDateTimeField);
 
 
 
-            if (firstDateTimeRecordInTable <= DateTime.Now.Subtract(TimeSpan.FromHours(1)) || 
-                !InitialParams.SourceStructureType.Equals(EnumSourceStructureType.Table))
+            if (firstDateTimeRecordInTable <= DateTime.Now.Subtract(TimeSpan.FromHours(1)))
             {
                 //re: INPUT DATASET - Prepare the SQL query required for pipeline to execute on Source System
 
                 firstDateTimeRecordInTable = firstDateTimeRecordInTable.AddHours(3);
 
-                string sqlQuery = ADFOperations.GenerateADFPipelineSQLQuery(lstElements, dateTimeField, false, cpType);
+                string sqlQuery = ADFV1Operations.GenerateADFPipelineSQLQuery(lstElements, dateTimeField, false, cpType);
 
                 string InOutDataSetNameRef = Utils.GetCustomizedInputOutRefName();
                   
@@ -161,7 +159,7 @@ namespace StreamCentral.ADLSIntegration
                 Console.WriteLine("Deployed data sets and pipelines for headers");
                 
                 //re: OUTPUT DATASET - Prepare the SQL query required for pipeline to execute on Source System
-                sqlQuery = ADFOperations.GenerateADFPipelineSQLQuery(lstElements, dateTimeField, true,cpType);
+                sqlQuery = ADFV1Operations.GenerateADFPipelineSQLQuery(lstElements, dateTimeField, true,cpType);
 
                 Console.WriteLine("Deploying data sets and pipelines for data");
 
