@@ -65,6 +65,10 @@ namespace StreamCentral.ADLSIntegration
             {
                 dsType = "BDL-CMT";
             }
+            else if (tableName.ToLower().Contains("assettagz") || tableName.ToLower().Contains("assettag"))
+            {
+                dsType = "AssetTagz";
+            }
             else
             {
                 dsType = tableName;
