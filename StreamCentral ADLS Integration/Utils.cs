@@ -60,9 +60,10 @@ namespace StreamCentral.ADLSIntegration
             {
                 dsType = "CoinsSQL";
             }
-            else if (tableName.ToLower().Contains("pocbdl") || tableName.ToLower().Contains("bdl"))
+            else if (tableName.ToLower().Contains("pocbdl") || tableName.ToLower().Contains("bdl") || 
+                tableName.ToLower().Contains("cmt") || tableName.ToLower().Contains("bdl-cmt"))
             {
-                dsType = "CMT";
+                dsType = "BDL-CMT";
             }
             else
             {
