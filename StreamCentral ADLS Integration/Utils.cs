@@ -69,6 +69,10 @@ namespace StreamCentral.ADLSIntegration
             {
                 dsType = "AssetTagz";
             }
+            else if (tableName.ToLower().Contains("astra") || tableName.ToLower().Contains("astrapower"))
+            {
+                dsType = "AstraPower";
+            }
             else
             {
                 dsType = tableName;
