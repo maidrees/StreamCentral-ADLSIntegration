@@ -134,7 +134,7 @@ namespace StreamCentral.ADLSIntegration
 
 
 
-            if (firstDateTimeRecordInTable <= DateTime.Now.Subtract(TimeSpan.FromHours(1)))
+            if (firstDateTimeRecordInTable <= DateTime.Now.Subtract(TimeSpan.FromMinutes(5)))
             {
                 //re: INPUT DATASET - Prepare the SQL query required for pipeline to execute on Source System
 
@@ -176,7 +176,7 @@ namespace StreamCentral.ADLSIntegration
             }
             else
             {
-                Console.WriteLine(" Empty record date UTC for table : " + tableName);
+                Console.WriteLine("There are no records in a table OR data received in a table in less than 5 Minutes. Please try again after some time. table provisioning failed for : " + tableName);
             }
         }
 
@@ -1063,6 +1063,9 @@ namespace StreamCentral.ADLSIntegration
                                     case "datetime":
                                         type = "DateTime";
                                         break;
+                                    case "time":
+                                        type = "DateTime";
+                                        break;
                                     case "nchar":
                                         type = "String";
                                         break;
@@ -1392,7 +1395,7 @@ namespace StreamCentral.ADLSIntegration
             }
             catch (Exception ex)
             {
-                Console.WriteLine("Unable to execute the sql command: {0}, Exception occured: {1}", cmd.CommandText, ex.Message);
+                Console.WriteLine("Unable to execute the sql command: {0}, Exception occured: {1}", cmd.CommandText, ex.Message);                
             }
 
             return firstDateTime;
