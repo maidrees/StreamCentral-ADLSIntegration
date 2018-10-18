@@ -17,25 +17,6 @@ namespace StreamCentral.ADLSIntegration
 {
     public class ADFV1Operations
     {
-
-        //IMPORTANT: specify the name of Azure resource group here
-        public static string resourceGroupName = ConfigurationManager.AppSettings["resourceGroupName"];// ConfigurationManager.AppSettings["resourceGroupName"];
-
-        //IMPORTANT: the name of the data factory must be globally unique.
-        public static string dataFactoryName = ConfigurationManager.AppSettings["dataFactoryName"];
-
-        //IMPORTANT: specify the name of the source linked Service
-        public static string linkedServiceNameSource = ConfigurationManager.AppSettings["linkedServiceNameSource"];
-
-        //IMPORTANT: specify the name of the destination linked Service. These linked services have already been created in our SC - scenario.
-        public static string linkedServiceNameDestination = ConfigurationManager.AppSettings["linkedServiceNameDestination"];
-
-        //IMPORTANT: specify the CGS ADF Hub Name
-        public static string cgsHubName = ConfigurationManager.AppSettings["cgsHubName"];
-
-        //IMPORTANT: specify the name of the main container of the Destination Lake Store.
-        public static string folderPath = ConfigurationManager.AppSettings["folderPath"];
-
         public static string dataSourceType = string.Empty;
         
         public static DataFactoryManagementClient client;
@@ -49,10 +30,10 @@ namespace StreamCentral.ADLSIntegration
         {
 
             //IMPORTANT: generate security token for the subsciption and AAD App
-            TokenCloudCredentials aadTokenCredentials = new TokenCloudCredentials(ConfigurationManager.AppSettings["SubscriptionId"],
+            TokenCloudCredentials aadTokenCredentials = new TokenCloudCredentials(AppSettingsManager.subscriptionId,
                     GetAuthorizationHeader().Result);
 
-            Uri resourceManagerUri = new Uri(ConfigurationManager.AppSettings["ResourceManagerEndpoint"]);
+            Uri resourceManagerUri = new Uri(AppSettingsManager.resourceManagerEndPoint);
 
             // create data factory management client
             client = new DataFactoryManagementClient(aadTokenCredentials, resourceManagerUri);
@@ -65,7 +46,7 @@ namespace StreamCentral.ADLSIntegration
             string token = string.Empty;
 
             //IMPORTANT: generate security token for the subsciption and AAD App
-            TokenCloudCredentials aadTokenCredentials = new TokenCloudCredentials(ConfigurationManager.AppSettings["SubscriptionId"],
+            TokenCloudCredentials aadTokenCredentials = new TokenCloudCredentials(AppSettingsManager.subscriptionId,
                     GetAuthorizationHeader().Result);
 
             return aadTokenCredentials.Token;
@@ -127,7 +108,7 @@ namespace StreamCentral.ADLSIntegration
             
             string dateTimeField = (String.IsNullOrEmpty(InitialParams.FilterDateTimeField) ? "recorddateutc" : InitialParams.FilterDateTimeField);
 
-            folderPath = (String.IsNullOrEmpty(folderPath) ? ConfigurationManager.AppSettings["folderPath"] : folderPath);
+            AppSettingsManager.folderPath = (String.IsNullOrEmpty(AppSettingsManager.folderPath) ? ConfigurationManager.AppSettings["folderPath"] : AppSettingsManager.folderPath);
             
 
             firstDateTimeRecordInTable = ADFV1Operations.FetchFirstRowRecordDate(InitialParams.TableName, InitialParams.FilterDateTimeField);
@@ -188,7 +169,7 @@ namespace StreamCentral.ADLSIntegration
 
             try
             {
-                DatasetGetResponse respGetInDatasets = client.Datasets.Get(resourceGroupName, dataFactoryName, inDataSetName);
+                DatasetGetResponse respGetInDatasets = client.Datasets.Get(AppSettingsManager.resourceGroupName, AppSettingsManager.dataFactoryName, inDataSetName);
                 dsInput = respGetInDatasets.Dataset;
             }
             catch (Exception ex) { Console.WriteLine("Unable to find the Input dataset: Will look to create new : " + ex.Message); }
@@ -196,13 +177,13 @@ namespace StreamCentral.ADLSIntegration
             if (dsInput == null && InitialParams.SourceStructureType == EnumSourceStructureType.Table)
             {
                 //Create Input DataSet
-                CreateOrUpdateInputDataSet(client, resourceGroupName, dataFactoryName, linkedServiceNameSource,
+                CreateOrUpdateInputDataSet(client, AppSettingsManager.resourceGroupName, AppSettingsManager.dataFactoryName, AppSettingsManager.linkedServiceNameSource,
                     inDataSetName, tableName, lstElements, IsDataDeploy);
             }
 
             try
             {
-                DatasetGetResponse respGetOutDatasets = client.Datasets.Get(resourceGroupName, dataFactoryName, outDataSetName);
+                DatasetGetResponse respGetOutDatasets = client.Datasets.Get(AppSettingsManager.resourceGroupName, AppSettingsManager.dataFactoryName, outDataSetName);
                 dsOutput = respGetOutDatasets.Dataset;
             }
             catch (Exception ex) { Console.WriteLine("Unable to find the Output dataset: Will look to create new : " + ex.Message); }
@@ -212,7 +193,7 @@ namespace StreamCentral.ADLSIntegration
                 //Create Output DataSet
                 if (InitialParams.SourceStructureType.Equals(EnumSourceStructureType.Table))
                 {
-                    CreateOrUpdateOutputDataSet(client, resourceGroupName, dataFactoryName, linkedServiceNameDestination,
+                    CreateOrUpdateOutputDataSet(client, AppSettingsManager.resourceGroupName, AppSettingsManager.dataFactoryName, AppSettingsManager.linkedServiceNameDestination,
                         outDataSetName, fileName, folderpath, lstElements, IsDataDeploy);
                 }
                 else if(InitialParams.SourceStructureType.Equals(EnumSourceStructureType.TableView))
@@ -221,7 +202,7 @@ namespace StreamCentral.ADLSIntegration
                 }
                 else
                 {
-                    CreateOrUpdateOutputDataSetForStoredProc(client, resourceGroupName, dataFactoryName, linkedServiceNameDestination,
+                    CreateOrUpdateOutputDataSetForStoredProc(client, AppSettingsManager.resourceGroupName, AppSettingsManager.dataFactoryName, AppSettingsManager.linkedServiceNameDestination,
                         outDataSetName, fileName, folderpath, lstElements, IsDataDeploy);
                 }
             }
@@ -229,12 +210,12 @@ namespace StreamCentral.ADLSIntegration
             //Create Or Update Pipeline
             if (InitialParams.SourceStructureType.Equals(EnumSourceStructureType.Table))
             {
-                CreateOrUpdatePipeline(client, resourceGroupName, dataFactoryName, linkedServiceNameDestination, pipelineName,
+                CreateOrUpdatePipeline(client, AppSettingsManager.resourceGroupName, AppSettingsManager.dataFactoryName, AppSettingsManager.linkedServiceNameDestination, pipelineName,
                     inDataSetName, outDataSetName, sqlQuery, recorddateUTC, activityName, IsDataDeploy, cpType);
             }
             else
             {
-                CreateOrUpdatePipelineForStoredProc(client, resourceGroupName, dataFactoryName, linkedServiceNameDestination, pipelineName,
+                CreateOrUpdatePipelineForStoredProc(client, AppSettingsManager.resourceGroupName, AppSettingsManager.dataFactoryName, AppSettingsManager.linkedServiceNameDestination, pipelineName,
                                     inDataSetName, outDataSetName, sqlQuery, recorddateUTC, activityName, IsDataDeploy, cpType);
 
             }
@@ -243,12 +224,12 @@ namespace StreamCentral.ADLSIntegration
 
         public static async Task<string> GetAuthorizationHeader()
         {
-            AuthenticationContext context = new AuthenticationContext(ConfigurationManager.AppSettings["ActiveDirectoryEndpoint"] + ConfigurationManager.AppSettings["ActiveDirectoryTenantId"]);
+            AuthenticationContext context = new AuthenticationContext(AppSettingsManager.activeDirectoryEndPoint + AppSettingsManager.activeDirectoryTenantID);
             ClientCredential credential = new ClientCredential(
-                ConfigurationManager.AppSettings["ApplicationId"],
-                ConfigurationManager.AppSettings["Password"]);
+                AppSettingsManager.applicationId,
+                AppSettingsManager.password);
             AuthenticationResult result = await context.AcquireTokenAsync(
-                resource: ConfigurationManager.AppSettings["WindowsManagementUri"],
+                resource: AppSettingsManager.windowsManagementUri,
                 clientCredential: credential);
 
             if (result != null)
@@ -367,9 +348,7 @@ namespace StreamCentral.ADLSIntegration
             // create output datasets
             Console.WriteLine(String.Format("Creating output dataset - {0} ", datasetDestination));
 
-            bool isFirstRowHeader = false;
-
-            
+            bool isFirstRowHeader = false;            
 
             if (!isDataDeploy)
             { isFirstRowHeader = true; }
@@ -547,7 +526,7 @@ namespace StreamCentral.ADLSIntegration
             {
                 string nextLink = string.Empty;
 
-                DatasetListResponse respListDatasets = (DatasetListResponse)client.Datasets.List(resourceGroupName, dataFactoryName);
+                DatasetListResponse respListDatasets = (DatasetListResponse)client.Datasets.List(AppSettingsManager.resourceGroupName, AppSettingsManager.dataFactoryName);
 
                 do
                 {
@@ -584,7 +563,7 @@ namespace StreamCentral.ADLSIntegration
                             {
                                 Console.WriteLine("Deleting data set: " + datasetName);
 
-                                client.Datasets.Delete(resourceGroupName, dataFactoryName, datasetName);
+                                client.Datasets.Delete(AppSettingsManager.resourceGroupName, AppSettingsManager.dataFactoryName, datasetName);
 
                                 Console.WriteLine("Deleted data set: " + datasetName);
                             }
@@ -596,7 +575,7 @@ namespace StreamCentral.ADLSIntegration
                             {
                                 Console.WriteLine("Deleting data set: " + datasetName);
 
-                                client.Datasets.Delete(resourceGroupName, dataFactoryName, datasetName);
+                                client.Datasets.Delete(AppSettingsManager.resourceGroupName, AppSettingsManager.dataFactoryName, datasetName);
 
                                 Console.WriteLine("Deleted data set: " + datasetName);
                             }
@@ -608,7 +587,7 @@ namespace StreamCentral.ADLSIntegration
                             {
                                 Console.WriteLine("Deleting data set: " + datasetName);
 
-                                client.Datasets.Delete(resourceGroupName, dataFactoryName, datasetName);
+                                client.Datasets.Delete(AppSettingsManager.resourceGroupName, AppSettingsManager.dataFactoryName, datasetName);
 
                                 Console.WriteLine("Deleted data set: " + datasetName);
                             }
@@ -627,7 +606,7 @@ namespace StreamCentral.ADLSIntegration
         {
             try
             {
-                PipelineListResponse respListPipelines = (PipelineListResponse)client.Pipelines.List(resourceGroupName, dataFactoryName);
+                PipelineListResponse respListPipelines = (PipelineListResponse)client.Pipelines.List(AppSettingsManager.resourceGroupName, AppSettingsManager.dataFactoryName);
 
                 foreach (var pl in respListPipelines.Pipelines)
                 {
@@ -646,7 +625,7 @@ namespace StreamCentral.ADLSIntegration
             {
                 Console.WriteLine("Deleting pipeline: " + pipelineName);
 
-                client.Pipelines.Delete(resourceGroupName, dataFactoryName, pipelineName);
+                client.Pipelines.Delete(AppSettingsManager.resourceGroupName, AppSettingsManager.dataFactoryName, pipelineName);
 
                 Console.WriteLine("Deleted pipeline: " + pipelineName);
             }
@@ -813,7 +792,7 @@ namespace StreamCentral.ADLSIntegration
                                     End = PipelineActivePeriodEndTime,
                                     IsPaused = false,
                                     PipelineMode = mode,
-                                    HubName = cgsHubName,
+                                    HubName = AppSettingsManager.cgsHubName,
                                     ExpirationTime = TimeSpan.FromMinutes(0)
                                 },
                             }
@@ -992,7 +971,7 @@ namespace StreamCentral.ADLSIntegration
                                     End = PipelineActivePeriodEndTime,
                                     IsPaused = false,
                                     PipelineMode = mode,
-                                    HubName = cgsHubName,
+                                    HubName = AppSettingsManager.cgsHubName,
                                     ExpirationTime = TimeSpan.FromMinutes(0)
                                 },
                             }
@@ -1008,87 +987,7 @@ namespace StreamCentral.ADLSIntegration
             }
         }
 
-        public static List<DataElement> GenerateStructure(string tableName)
-        {
-            try
-            {
-                List<DataElement> InOutParams = new List<DataElement>();
-
-                //// Look for the name in the connectionStrings section.
-                SqlConnection connect = SQLUtils.SQLConnect();
-
-                // SqlCommand cmd = SQLUtils.GenerateStoredProcCommand("SCDMTableSchemaProc", tableName);
-                SqlCommand cmd = new SqlCommand(ConfigurationManager.AppSettings["SCDMTableSchemaProc"], connect)
-                {
-                    CommandType = CommandType.StoredProcedure
-                };
-                  
-                cmd.Parameters.Add(new SqlParameter("@TableName", tableName));
-
-                if (connect.State == ConnectionState.Closed)
-                {
-                    connect.Open();
-                }
-
-                using (var reader = cmd.ExecuteReader())
-                {
-                    if (reader.HasRows)
-                    {
-                        while (reader.Read())
-                        {
-                            var name = reader.GetString(0);
-                            var type = reader.GetString(1);
-
-                            if (!(name == "RecordId" || name == "Seq" || name == "Call_UID" || name == "CreatedBy" ||
-                                name == "CreatedDate" || name == "ModifiedBy" || name == "ModifiedDate" ||
-                                name == "LOCATIONDIMENSIONID" || name == "EntityId" || name == "EntityLocationId" ||
-                                name == "operating_id" || name == "source_id" || (type.Contains("image"))))
-                            {
-
-                                //converting SQL Server datatypes to ADF data types
-                                switch (type)
-                                {
-                                    case "varchar":
-                                        type = "String";
-                                        break;
-                                    case "nvarchar":
-                                        type = "String";
-                                        break;
-                                    case "int":
-                                        type = "Int32";
-                                        break;
-                                    case "bigint":
-                                        type = "Int32";
-                                        break;
-                                    case "datetime":
-                                        type = "DateTime";
-                                        break;
-                                    case "time":
-                                        type = "DateTime";
-                                        break;
-                                    case "nchar":
-                                        type = "String";
-                                        break;
-                                }
-
-                                InOutParams.Add(new DataElement
-                                {
-                                    Name = name,
-                                    Type = type
-                                });
-                            }
-                        }
-                        reader.Close();
-                        connect.Close();
-                    }
-                }
-                return InOutParams;
-            }
-            catch(Exception ex)
-            {
-                throw ex;
-            }
-        }
+       
 
 
         public static Availability GetFormattedAvailabilityInstance(bool isDataDeploy)
@@ -1399,8 +1298,89 @@ namespace StreamCentral.ADLSIntegration
             }
 
             return firstDateTime;
-        }  
+        }
 
-       
+        public static List<DataElement> GenerateStructure(string tableName)
+        {
+            try
+            {
+                List<DataElement> InOutParams = new List<DataElement>();
+
+                //// Look for the name in the connectionStrings section.
+                SqlConnection connect = SQLUtils.SQLConnect();
+
+                // SqlCommand cmd = SQLUtils.GenerateStoredProcCommand("SCDMTableSchemaProc", tableName);
+                SqlCommand cmd = new SqlCommand(ConfigurationManager.AppSettings["SCDMTableSchemaProc"], connect)
+                {
+                    CommandType = CommandType.StoredProcedure
+                };
+
+                cmd.Parameters.Add(new SqlParameter("@TableName", tableName));
+
+                if (connect.State == ConnectionState.Closed)
+                {
+                    connect.Open();
+                }
+
+                using (var reader = cmd.ExecuteReader())
+                {
+                    if (reader.HasRows)
+                    {
+                        while (reader.Read())
+                        {
+                            var name = reader.GetString(0);
+                            var type = reader.GetString(1);
+
+                            if (!(name == "RecordId" || name == "Seq" || name == "Call_UID" || name == "CreatedBy" ||
+                                name == "CreatedDate" || name == "ModifiedBy" || name == "ModifiedDate" ||
+                                name == "LOCATIONDIMENSIONID" || name == "EntityId" || name == "EntityLocationId" ||
+                                name == "operating_id" || name == "source_id" || (type.Contains("image"))))
+                            {
+
+                                //converting SQL Server datatypes to ADF data types
+                                switch (type)
+                                {
+                                    case "varchar":
+                                        type = "String";
+                                        break;
+                                    case "nvarchar":
+                                        type = "String";
+                                        break;
+                                    case "int":
+                                        type = "Int32";
+                                        break;
+                                    case "bigint":
+                                        type = "Int32";
+                                        break;
+                                    case "datetime":
+                                        type = "DateTime";
+                                        break;
+                                    case "time":
+                                        type = "DateTime";
+                                        break;
+                                    case "nchar":
+                                        type = "String";
+                                        break;
+                                }
+
+                                InOutParams.Add(new DataElement
+                                {
+                                    Name = name,
+                                    Type = type
+                                });
+                            }
+                        }
+                        reader.Close();
+                        connect.Close();
+                    }
+                }
+                return InOutParams;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+
     }
 }
