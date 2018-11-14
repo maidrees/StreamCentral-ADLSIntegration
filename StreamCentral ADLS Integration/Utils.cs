@@ -1,13 +1,5 @@
 ﻿using System;
-using System.Data;
-using System.Collections.Generic;
-using System.Threading.Tasks;
 using System.Configuration;
-using System.Collections.ObjectModel;
-using System.Data.SqlClient;
-
-using System.Collections.ObjectModel;
-using System.Data.SqlClient;
 
 namespace StreamCentral.ADLSIntegration
 {
@@ -40,10 +32,10 @@ namespace StreamCentral.ADLSIntegration
             {
                 dsType = "SharePointOnline";
             }
-            //else if (tableName.ToLower().Contains("sharepointonlinedoc") || tableName.ToLower().Contains("sharepointdoc"))
-            //{
-            //    dsType = "SharePointOnlineDocuments";
-            //}
+            else if (tableName.ToLower().Contains("asta") || tableName.ToLower().Contains("astacloud"))
+            {
+                dsType = "AstaCloudPowerProject";
+            }
             else if (tableName.ToLower().Contains("servicenow"))
             {
                 dsType = "ServiceNow";
@@ -56,13 +48,13 @@ namespace StreamCentral.ADLSIntegration
             {
                 dsType = "RivoHSE";
             }
-            else if (tableName.ToLower().Contains("excel") && (tableName.ToLower().Contains("coins")))
-            {
-                dsType = "CoinsEXCEL";
-            }
-            else if (tableName.ToLower().Contains("coins"))
+            else if (tableName.ToLower().Contains("coinssql"))
             {
                 dsType = "CoinsSQL";
+            }
+            else if (tableName.ToLower().Contains("coinsexcel"))
+            {
+                dsType = "CoinsEXCEL";
             }
             else if (tableName.ToLower().Contains("pocbdl") || tableName.ToLower().Contains("bdl") || 
                 tableName.ToLower().Contains("cmt") || tableName.ToLower().Contains("bdl-cmt"))
@@ -72,6 +64,14 @@ namespace StreamCentral.ADLSIntegration
             else if (tableName.ToLower().Contains("assettagz") || tableName.ToLower().Contains("assettag"))
             {
                 dsType = "AssetTagz";
+            }
+            else if (tableName.ToLower().Contains("microsoftdynamics") || tableName.ToLower().Contains("dynamics"))
+            {
+                dsType = "MicrosoftDynamics";
+            }
+            else if (tableName.ToLower().Contains("jobsadder") || tableName.ToLower().Contains("jobsadder"))
+            {
+                dsType = "JobsAdder";
             }
             else
             {

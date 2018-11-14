@@ -1,0 +1,19 @@
+﻿Sample Live Parameters
+criteria:exact 
+datasource:DS-MicrosoftDynamics 
+table:FACT_DSDynamicKPIDProjTurnoverForecaseVsDeliveredmetricdetails 
+folderpath:Careys-Provisioned-Data-Live 
+datefilter:RecorddateUTC 
+dataslice:Day 
+datasliceinterval:1 
+primarykey:cy_kpireportsectiondetailid 
+copydataType:Distinct 
+tablepathinadls:DSDynamicKPIDProjTurnoverForecaseVsDelivered 
+environment:Live 
+offsetinterval:180 
+delayinterval:0 
+slicetype:end 
+temppathdeviation: 
+tempcompprefix:
+
+criteria:exact datasource:DS-MicrosoftDynamics table:FACT_DSDynamicKPIDProjTurnoverForecaseVsDeliveredmetricdetails folderpath:Careys-Provisioned-Data-Live datefilter:RecorddateUTC dataslice:Day datasliceinterval:1 primarykey:cy_kpireportsectiondetailid copydataType:Distinct tablepathinadls:DSDynamicKPIDProjTurnoverForecaseVsDelivered environment:Live offsetinterval:180 delayinterval:0 slicetype:end temppathdeviation: tempcompprefix:

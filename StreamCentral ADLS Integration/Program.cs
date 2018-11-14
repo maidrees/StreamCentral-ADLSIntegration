@@ -41,7 +41,7 @@ namespace StreamCentral.ADLSIntegration
                 {
                     Console.WriteLine("Unable to read any input from command line. Executing statements after that now:" + ex.Message);
 
-                    ADFV1Operations.DeleteDatasets("DSDONSEEDTimesheetAdjudicationsThisWeek",EnumDeleteSearchType.Contains);
+                    //ADFV1Operations.DeleteDatasets("DSDONSEEDTimesheetAdjudicationsThisWeek",EnumDeleteSearchType.Contains);
                     //ADFOperations.DeleteDatasets("SC_DSI_H_live");
                 }
                 if (InitialParams.DeployCriteria.Equals("search"))
@@ -57,6 +57,8 @@ namespace StreamCentral.ADLSIntegration
 
                 if (InitialParams.DeployCriteria.Equals("exact"))
                 {
+
+
                     ADFV1Operations.DeployADFDataSetsAndPipelines(InitialParams.OnPremiseADLAType);
                 }
 
@@ -65,8 +67,8 @@ namespace StreamCentral.ADLSIntegration
 
                     Console.WriteLine("Deleting the Pipelines : Start ");
 
-                    ADFV1Operations.DeletePipelines(Utils.GetCustomizedPipelineName(true));
                     ADFV1Operations.DeletePipelines(Utils.GetCustomizedPipelineName(false));
+                    ADFV1Operations.DeletePipelines(Utils.GetCustomizedPipelineName(true));
 
                     Console.WriteLine("Deleted Pipelines : End ");
 

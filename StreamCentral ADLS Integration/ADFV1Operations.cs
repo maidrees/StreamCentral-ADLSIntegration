@@ -604,31 +604,63 @@ namespace StreamCentral.ADLSIntegration
 
         public static void DeletePipelines(string startWithSearchText)
         {
+            int deleteStatus = 0, plCount = 0;
+            string plNextLink = String.Empty;
+
             try
             {
-                PipelineListResponse respListPipelines = (PipelineListResponse)client.Pipelines.List(AppSettingsManager.resourceGroupName, AppSettingsManager.dataFactoryName);
+                Console.WriteLine("pipeline to be deleted: " + startWithSearchText);
 
-                foreach (var pl in respListPipelines.Pipelines)
+                PipelineListResponse respListPipelines = (PipelineListResponse) client.Pipelines.List(AppSettingsManager.resourceGroupName, AppSettingsManager.dataFactoryName);
+
+                do
                 {
-                    DeletePipeline(pl.Name, startWithSearchText);
+                    plNextLink = respListPipelines.NextLink;
+
+                    Console.WriteLine("Pipeline Next Link: " + plNextLink);
+
+                    foreach (var pl in respListPipelines.Pipelines)
+                    {
+                        plCount++;
+                        deleteStatus = DeletePipeline(pl.Name, startWithSearchText);
+                    }
+
+                    try
+                    {
+                        respListPipelines = client.Pipelines.ListNext(plNextLink);
+                    }
+                    catch(Exception ex)
+                    {
+                        break;
+                    }
+
+                } while (!String.IsNullOrEmpty(plNextLink));
+                
+                if(deleteStatus ==0 )
+                {
+                    Console.WriteLine("Could not found the pipeline and not sure why ? " + startWithSearchText + " Pipeline count : "+ plCount);
                 }
             }
             catch (Exception ex)
             {
+                Console.WriteLine("Exception occured : " + ex.Message + " pipeline count " + plCount);
                 throw ex;
             }
         }
 
-        public static void DeletePipeline(string pipelineName, string startWithSearchText)
+        public static int DeletePipeline(string pipelineName, string startWithSearchText)
         {
-            if (pipelineName.StartsWith(startWithSearchText))
+            Console.WriteLine(" Pipeline Name:  " + pipelineName + "   / To Delete Pipeline Name: " + startWithSearchText);
+            if (pipelineName.ToLower().Equals(startWithSearchText.ToLower()))
             {
                 Console.WriteLine("Deleting pipeline: " + pipelineName);
 
                 client.Pipelines.Delete(AppSettingsManager.resourceGroupName, AppSettingsManager.dataFactoryName, pipelineName);
 
                 Console.WriteLine("Deleted pipeline: " + pipelineName);
+                return 1;
             }
+            return 0;
         }
 
         public static void CreateOrUpdatePipeline(DataFactoryManagementClient client, string resourceGroupName, string dataFactoryName,
