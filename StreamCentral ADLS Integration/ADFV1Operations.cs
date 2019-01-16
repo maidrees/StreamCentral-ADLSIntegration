@@ -5,7 +5,6 @@ using System.Threading.Tasks;
 using System.Configuration;
 using System.Collections.ObjectModel;
 using System.Data.SqlClient;
-
 using Microsoft.Azure;
 using Microsoft.Azure.Management.DataFactories;
 using Microsoft.Azure.Management.DataFactories.Models;
