@@ -760,13 +760,13 @@ namespace StreamCentral.ADLSIntegration
 
                     Policy = new ActivityPolicy()
                     {
-                        Timeout = TimeSpan.FromMinutes(3.0),
+                        Timeout = TimeSpan.FromHours(10.0),
                         Delay = objActivityDelayPolicyAttr,
                         Concurrency = 1,
                         ExecutionPriorityOrder = ExecutionPriorityOrder.NewestFirst,
                         LongRetry = 0,
-                        LongRetryInterval = TimeSpan.FromMinutes(0.0),
-                        Retry = 3
+                        LongRetryInterval = TimeSpan.FromMinutes(5.0),
+                        Retry = 5
                         
                     },
                     
@@ -1392,6 +1392,12 @@ namespace StreamCentral.ADLSIntegration
                                         break;
                                     case "nchar":
                                         type = "String";
+                                        break;
+                                    case "date":
+                                        type = "DateTime";
+                                        break;
+                                    case "bit":
+                                        type = "Int32";
                                         break;
                                 }
 
