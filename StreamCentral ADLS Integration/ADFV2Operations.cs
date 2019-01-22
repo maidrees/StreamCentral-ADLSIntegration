@@ -20,20 +20,6 @@ namespace StreamCentral.ADLSIntegration
 {
     class ADFV2Operations
     {
-        //// Set variables
-        //public static string tenantID = "<tenant ID>";
-        //public static string applicationId = "<Activity directory application ID>";
-        //public static string authenticationKey = "<Activity directory application authentication key>";
-        //public static string subscriptionId = "<subscription ID>";
-        //public static string resourceGroup = "<resource group name>";
-
-        //// Note that the data stores (Azure Storage, Azure SQL Database, etc.) and computes (HDInsight, etc.) used by data factory can be in other regions.
-        //public static string region = "East US";
-        //public static string dataFactoryName = "<name of the data factory>"; //must be globally unique
-
-        //// Specify the source Azure Blob information
-        //public static string storageAccount = "<name of Azure Storage account>";
-        //public static string storageKey = "<key for your Azure Storage account>";
         public static string inputBlobPath = "adfv2tutorial/";
         public static string inputBlobName = "inputEmp.txt";
 
