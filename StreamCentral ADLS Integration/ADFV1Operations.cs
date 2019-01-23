@@ -10,38 +10,18 @@ using Microsoft.Azure;
 using Microsoft.Azure.Management.DataFactories;
 using Microsoft.Azure.Management.DataFactories.Models;
 using Microsoft.Azure.Management.DataFactories.Common.Models;
-
 using Microsoft.IdentityModel.Clients.ActiveDirectory;
 
 
 namespace StreamCentral.ADLSIntegration
 {
-    public class ADFOperations
+    public class ADFV1Operations
     {
-
-        //IMPORTANT: specify the name of Azure resource group here
-        public static string resourceGroupName = ConfigurationSettings.AppSettings["resourceGroupName"];
-
-        //IMPORTANT: the name of the data factory must be globally unique.
-        public static string dataFactoryName = ConfigurationSettings.AppSettings["dataFactoryName"];
-
-        //IMPORTANT: specify the name of the source linked Service
-        public static string linkedServiceNameSource = ConfigurationSettings.AppSettings["linkedServiceNameSource"];
-
-        //IMPORTANT: specify the name of the destination linked Service. These linked services have already been created in our SC - scenario.
-        public static string linkedServiceNameDestination = ConfigurationSettings.AppSettings["linkedServiceNameDestination"];
-
-        //IMPORTANT: specify the CGS ADF Hub Name
-        public static string cgsHubName = ConfigurationSettings.AppSettings["cgsHubName"];
-
-        //IMPORTANT: specify the name of the main container of the Destination Lake Store.
-        public static string folderPath = ConfigurationSettings.AppSettings["folderPath"];
-
         public static string dataSourceType = string.Empty;
         
         public static DataFactoryManagementClient client;
 
-        static ADFOperations()
+        static ADFV1Operations()
         {
             CreateManagementClientInstance();
         }
@@ -50,10 +30,10 @@ namespace StreamCentral.ADLSIntegration
         {
 
             //IMPORTANT: generate security token for the subsciption and AAD App
-            TokenCloudCredentials aadTokenCredentials = new TokenCloudCredentials(ConfigurationSettings.AppSettings["SubscriptionId"],
+            TokenCloudCredentials aadTokenCredentials = new TokenCloudCredentials(AppSettingsManager.subscriptionId,
                     GetAuthorizationHeader().Result);
 
-            Uri resourceManagerUri = new Uri(ConfigurationSettings.AppSettings["ResourceManagerEndpoint"]);
+            Uri resourceManagerUri = new Uri(AppSettingsManager.resourceManagerEndPoint);
 
             // create data factory management client
             client = new DataFactoryManagementClient(aadTokenCredentials, resourceManagerUri);
@@ -61,12 +41,12 @@ namespace StreamCentral.ADLSIntegration
             return client;
         }
 
-        public static string getClientToken()
+        public static string GetClientToken()
         {
             string token = string.Empty;
 
             //IMPORTANT: generate security token for the subsciption and AAD App
-            TokenCloudCredentials aadTokenCredentials = new TokenCloudCredentials(ConfigurationSettings.AppSettings["SubscriptionId"],
+            TokenCloudCredentials aadTokenCredentials = new TokenCloudCredentials(AppSettingsManager.subscriptionId,
                     GetAuthorizationHeader().Result);
 
             return aadTokenCredentials.Token;
@@ -76,7 +56,7 @@ namespace StreamCentral.ADLSIntegration
         public static void DeployADFDataSetsAndPipelines()
         {
 
-            List<string> tableNames = ADFOperations.ListFilteredTableNames();
+            List<string> tableNames = ADFV1Operations.ListFilteredTableNames();
 
             foreach (string tableName in tableNames)
             {
@@ -92,14 +72,13 @@ namespace StreamCentral.ADLSIntegration
         //Create Data Sets and Pipelines - Deploy these in Azure Data Factory for a all structures in the source system.
         public static void DeployADFDataSetsAndPipelines(string [] searchTexts)
         {
-            List<string> tableNames = ADFOperations.ListFilteredTableNames(searchTexts);
+            List<string> tableNames = ADFV1Operations.ListFilteredTableNames(searchTexts);
 
             //tableNames.Reverse();
 
             foreach (string tableName in tableNames)
             {
                 InitialParams.TableName = tableName;
-                DeployADFDataSetsAndPipelines(CopyOnPremSQLToADLAType.All);
 
                 DeployADFDataSetsAndPipelines(CopyOnPremSQLToADLAType.Transactional);
             }
@@ -119,7 +98,7 @@ namespace StreamCentral.ADLSIntegration
             }
 
             //List the attribute, data type of each column
-            List<DataElement> lstElements = ADFOperations.GenerateStructure(InitialParams.TableName);
+            List<DataElement> lstElements = ADFV1Operations.GenerateStructure(InitialParams.TableName);
 
             //if (System.String.IsNullOrEmpty(InitialParams.DataSourcePathInADLS))
             //{
@@ -129,33 +108,31 @@ namespace StreamCentral.ADLSIntegration
             
             string dateTimeField = (String.IsNullOrEmpty(InitialParams.FilterDateTimeField) ? "recorddateutc" : InitialParams.FilterDateTimeField);
 
-            folderPath = (String.IsNullOrEmpty(folderPath) ? ConfigurationSettings.AppSettings["folderPath"] : folderPath);
+            AppSettingsManager.folderPath = (String.IsNullOrEmpty(AppSettingsManager.folderPath) ? ConfigurationManager.AppSettings["folderPath"] : AppSettingsManager.folderPath);
             
 
-            firstDateTimeRecordInTable = ADFOperations.FetchFirstRowRecordDate(InitialParams.TableName, InitialParams.FilterDateTimeField);
+            firstDateTimeRecordInTable = ADFV1Operations.FetchFirstRowRecordDate(InitialParams.TableName, InitialParams.FilterDateTimeField);
 
 
 
-            if (firstDateTimeRecordInTable <= DateTime.Now.Subtract(TimeSpan.FromHours(1)))
+            if (firstDateTimeRecordInTable <= DateTime.Now.Subtract(TimeSpan.FromMinutes(5)))
             {
                 //re: INPUT DATASET - Prepare the SQL query required for pipeline to execute on Source System
 
                 firstDateTimeRecordInTable = firstDateTimeRecordInTable.AddHours(3);
 
-                string sqlQuery = ADFOperations.GenerateADFPipelineSQLQuery(lstElements, dateTimeField, false, cpType);
+                string sqlQuery = ADFV1Operations.GenerateADFPipelineSQLQuery(lstElements, dateTimeField, false, cpType);
 
-                string InOutDataSetNameRef = InitialParams.TablePathInADLS + "_" + cpType.ToString();
+                string InOutDataSetNameRef = Utils.GetCustomizedInputOutRefName();
                   
                 Console.WriteLine("Deploying data sets and pipelines for Headers");
 
-                string inDataSetName = String.Format("SC-{2}_DSI_H_{0}_{1}",InitialParams.Environment,InOutDataSetNameRef,InitialParams.TempCompPrefix);                    
-                string outDataSetName =String.Format("SC-{2}_DSO_H_{0}_{1}", InitialParams.Environment, InOutDataSetNameRef, InitialParams.TempCompPrefix);
-                string pipelineName = String.Format("SC-{2}_PL01_H_{0}_{1}", InitialParams.Environment,InOutDataSetNameRef, InitialParams.TempCompPrefix);
-                string activityName = String.Format("Act-{2}_H_{0}_{1}", InitialParams.Environment, InOutDataSetNameRef, InitialParams.TempCompPrefix);
-                string fileName = "Header_" + InOutDataSetNameRef;
-                string folderpath = String.Format("{0}/{5}/DL-{1}/{4}/{2}/{3}", InitialParams.FolderPath,
-                    InitialParams.DataSourcePathInADLS, InitialParams.TablePathInADLS, InOutDataSetNameRef,InitialParams.TempCompPrefix,
-                    InitialParams.TempPathDeviation);
+                string inDataSetName = Utils.GetCustomizedInputDataSetName(true);
+                string outDataSetName = Utils.GetCustomizedOutputDataSetName(true);
+                string pipelineName = Utils.GetCustomizedPipelineName(true);
+                string activityName = Utils.GetCustomizedActivityName(true);
+                string fileName = Utils.GetCustomizedFileName(true);
+                string folderpath = Utils.GetCustomizedFolderPath();
 
                 DeployDatasetAndPipelines(pipelineName,activityName, inDataSetName, outDataSetName, tableName,
                     lstElements, fileName, folderpath, sqlQuery, firstDateTimeRecordInTable, false,cpType);
@@ -163,28 +140,16 @@ namespace StreamCentral.ADLSIntegration
                 Console.WriteLine("Deployed data sets and pipelines for headers");
                 
                 //re: OUTPUT DATASET - Prepare the SQL query required for pipeline to execute on Source System
-
-                sqlQuery = ADFOperations.GenerateADFPipelineSQLQuery(lstElements, dateTimeField, true,cpType);
+                sqlQuery = ADFV1Operations.GenerateADFPipelineSQLQuery(lstElements, dateTimeField, true,cpType);
 
                 Console.WriteLine("Deploying data sets and pipelines for data");
 
-                inDataSetName = String.Format("SC-{2}_DSI_D_{0}_{1}", InitialParams.Environment, InOutDataSetNameRef, InitialParams.TempCompPrefix);
-                outDataSetName = String.Format("SC-{2}_DSO_D_{0}_{1}", InitialParams.Environment, InOutDataSetNameRef, InitialParams.TempCompPrefix);
-                pipelineName = String.Format("SC-{2}_PL01_D_{0}_{1}", InitialParams.Environment, InOutDataSetNameRef, InitialParams.TempCompPrefix);
-                activityName = String.Format("Act-{2}_D_{0}_{1}", InitialParams.Environment, InOutDataSetNameRef, InitialParams.TempCompPrefix);
+                inDataSetName = Utils.GetCustomizedInputDataSetName(false);
+                outDataSetName = Utils.GetCustomizedOutputDataSetName(false);
+                pipelineName = Utils.GetCustomizedPipelineName(false);
+                activityName = Utils.GetCustomizedActivityName(false);
+                fileName = Utils.GetCustomizedFileName(false);
 
-                if (cpType.Equals(CopyOnPremSQLToADLAType.Distinct) || 
-                    cpType.Equals(CopyOnPremSQLToADLAType.All) || 
-                    cpType.Equals(CopyOnPremSQLToADLAType.Flattened) ||
-                    cpType.Equals(CopyOnPremSQLToADLAType.LastIteration))
-                {
-                    fileName = "Data_" + InOutDataSetNameRef;
-                }
-                else
-                {
-                    fileName = "Data_" + InOutDataSetNameRef + "-{year}-{month}-{day}-{hour}-{minute}";
-                }
-                
                 DeployDatasetAndPipelines(pipelineName,activityName, inDataSetName, outDataSetName, tableName, 
                     lstElements, fileName, folderpath, sqlQuery, firstDateTimeRecordInTable, true,cpType);
 
@@ -192,7 +157,7 @@ namespace StreamCentral.ADLSIntegration
             }
             else
             {
-                Console.WriteLine(" Empty record date UTC for table : " + tableName);
+                Console.WriteLine("There are no records in a table OR data received in a table in less than 5 Minutes. Please try again after some time. table provisioning failed for : " + tableName);
             }
         }
 
@@ -204,45 +169,67 @@ namespace StreamCentral.ADLSIntegration
 
             try
             {
-                DatasetGetResponse respGetInDatasets = client.Datasets.Get(resourceGroupName, dataFactoryName, inDataSetName);
+                DatasetGetResponse respGetInDatasets = client.Datasets.Get(AppSettingsManager.resourceGroupName, AppSettingsManager.dataFactoryName, inDataSetName);
                 dsInput = respGetInDatasets.Dataset;
             }
-            catch (Exception ex) { }
+            catch (Exception ex) { Console.WriteLine("Unable to find the Input dataset: Will look to create new : " + ex.Message); }
 
-            if (dsInput == null)
+            if (dsInput == null && InitialParams.SourceStructureType == EnumSourceStructureType.Table)
             {
                 //Create Input DataSet
-                CreateOrUpdateInputDataSet(client, resourceGroupName, dataFactoryName, linkedServiceNameSource,
+                CreateOrUpdateInputDataSet(client, AppSettingsManager.resourceGroupName, AppSettingsManager.dataFactoryName, AppSettingsManager.linkedServiceNameSource,
                     inDataSetName, tableName, lstElements, IsDataDeploy);
             }
+
             try
             {
-                DatasetGetResponse respGetOutDatasets = client.Datasets.Get(resourceGroupName, dataFactoryName, outDataSetName);
+                DatasetGetResponse respGetOutDatasets = client.Datasets.Get(AppSettingsManager.resourceGroupName, AppSettingsManager.dataFactoryName, outDataSetName);
                 dsOutput = respGetOutDatasets.Dataset;
             }
-            catch (Exception ex) { }
+            catch (Exception ex) { Console.WriteLine("Unable to find the Output dataset: Will look to create new : " + ex.Message); }
 
             if (dsOutput == null)
             {
                 //Create Output DataSet
-                CreateOrUpdateOutputDataSet(client, resourceGroupName, dataFactoryName, linkedServiceNameDestination,
-                    outDataSetName, fileName, folderpath, lstElements, IsDataDeploy);
+                if (InitialParams.SourceStructureType.Equals(EnumSourceStructureType.Table))
+                {
+                    CreateOrUpdateOutputDataSet(client, AppSettingsManager.resourceGroupName, AppSettingsManager.dataFactoryName, AppSettingsManager.linkedServiceNameDestination,
+                        outDataSetName, fileName, folderpath, lstElements, IsDataDeploy);
+                }
+                else if(InitialParams.SourceStructureType.Equals(EnumSourceStructureType.TableView))
+                {
+
+                }
+                else
+                {
+                    CreateOrUpdateOutputDataSetForStoredProc(client, AppSettingsManager.resourceGroupName, AppSettingsManager.dataFactoryName, AppSettingsManager.linkedServiceNameDestination,
+                        outDataSetName, fileName, folderpath, lstElements, IsDataDeploy);
+                }
             }
 
             //Create Or Update Pipeline
-            CreateOrUpdatePipeline(client, resourceGroupName, dataFactoryName, linkedServiceNameDestination, pipelineName,
-                inDataSetName, outDataSetName, sqlQuery, recorddateUTC,activityName, IsDataDeploy,cpType);
+            if (InitialParams.SourceStructureType.Equals(EnumSourceStructureType.Table))
+            {
+                CreateOrUpdatePipeline(client, AppSettingsManager.resourceGroupName, AppSettingsManager.dataFactoryName, AppSettingsManager.linkedServiceNameDestination, pipelineName,
+                    inDataSetName, outDataSetName, sqlQuery, recorddateUTC, activityName, IsDataDeploy, cpType);
+            }
+            else
+            {
+                CreateOrUpdatePipelineForStoredProc(client, AppSettingsManager.resourceGroupName, AppSettingsManager.dataFactoryName, AppSettingsManager.linkedServiceNameDestination, pipelineName,
+                                    inDataSetName, outDataSetName, sqlQuery, recorddateUTC, activityName, IsDataDeploy, cpType);
+
+            }
 
         }
 
         public static async Task<string> GetAuthorizationHeader()
         {
-            AuthenticationContext context = new AuthenticationContext(ConfigurationSettings.AppSettings["ActiveDirectoryEndpoint"] + ConfigurationSettings.AppSettings["ActiveDirectoryTenantId"]);
+            AuthenticationContext context = new AuthenticationContext(AppSettingsManager.activeDirectoryEndPoint + AppSettingsManager.activeDirectoryTenantID);
             ClientCredential credential = new ClientCredential(
-                ConfigurationSettings.AppSettings["ApplicationId"],
-                ConfigurationSettings.AppSettings["Password"]);
+                AppSettingsManager.applicationId,
+                AppSettingsManager.password);
             AuthenticationResult result = await context.AcquireTokenAsync(
-                resource: ConfigurationSettings.AppSettings["WindowsManagementUri"],
+                resource: AppSettingsManager.windowsManagementUri,
                 clientCredential: credential);
 
             if (result != null)
@@ -295,6 +282,17 @@ namespace StreamCentral.ADLSIntegration
             // create input datasets
             Console.WriteLine("Creating input dataset - " + datasetSource);
 
+            DatasetTypeProperties objInputDSProp;
+            
+            if (InitialParams.SourceType.ToString().ToLower().Contains("onprem"))
+            {
+                objInputDSProp = new SqlServerTableDataset() { TableName = sourceStructureName };                                
+            }
+            else
+            {
+                objInputDSProp =new AzureSqlTableDataset() { TableName = sourceStructureName };
+            }
+            
             Availability objAvailability = GetFormattedAvailabilityInstance(isDataDeploy);
 
             try
@@ -309,12 +307,7 @@ namespace StreamCentral.ADLSIntegration
                             Properties = new DatasetProperties()
                             {
                                 LinkedServiceName = linkedServiceName,
-
-                                TypeProperties = new SqlServerTableDataset()
-                                {
-                                    TableName = sourceStructureName
-                                },
-
+                                TypeProperties = objInputDSProp,
                                 Structure = InputParams,
                                 External = true,
                                 Availability = objAvailability,
@@ -338,13 +331,13 @@ namespace StreamCentral.ADLSIntegration
             {
                 if (invalidToken.Message.Contains("token") || invalidToken.Message.Contains("expir"))
                 {
-                    Console.WriteLine("Oops! Client Token Expired while creating Input Data set:" + invalidToken.Message);
+                    Console.WriteLine("Oops! Client Token Expired while creating Input Data set : " + invalidToken.Message);
                     client = CreateManagementClientInstance();
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine("Oops! Something went wrong in creating data set" + ex.Message);
+                Console.WriteLine("Oops! Something went wrong in creating data set : " + ex.Message);
             }
         }
 
@@ -355,9 +348,7 @@ namespace StreamCentral.ADLSIntegration
             // create output datasets
             Console.WriteLine(String.Format("Creating output dataset - {0} ", datasetDestination));
 
-            bool isFirstRowHeader = false;
-
-            
+            bool isFirstRowHeader = false;            
 
             if (!isDataDeploy)
             { isFirstRowHeader = true; }
@@ -438,13 +429,104 @@ namespace StreamCentral.ADLSIntegration
             }
         }
 
-        public static bool DeleteDatasets(string startWithSearchText)
+
+        public static void CreateOrUpdateOutputDataSetForStoredProc(DataFactoryManagementClient client, string resourceGroupName, string dataFactoryName,
+           string linkedServiceName, string datasetDestination, string fileName, string folderPath, List<DataElement> InputParams, bool isDataDeploy)
+        {
+            // create output datasets
+            Console.WriteLine(String.Format("Creating output dataset - {0} ", datasetDestination));
+
+            bool isFirstRowHeader = false;
+
+
+
+            if (!isDataDeploy)
+            { isFirstRowHeader = true; }
+
+            try
+            {
+                if (client == null)
+                {
+                    client = CreateManagementClientInstance();
+                }
+
+
+                Availability ObjDataSetAvailability = GetFormattedAvailabilityInstance(isDataDeploy);
+
+
+                client.Datasets.CreateOrUpdate(resourceGroupName, dataFactoryName,
+                new DatasetCreateOrUpdateParameters()
+                {
+                    Dataset = new Dataset()
+                    {
+                        Name = datasetDestination,
+                        Properties = new DatasetProperties()
+                        {
+
+                            LinkedServiceName = linkedServiceName,
+                           // Structure = InputParams,
+
+                            TypeProperties = new AzureDataLakeStoreDataset()
+                            {
+                                FileName = fileName,
+
+                                FolderPath = folderPath,
+
+                                Format = new TextFormat()
+                                {
+                                    RowDelimiter = "\n",
+                                    ColumnDelimiter = "~",
+                                    NullValue = String.Empty,
+                                    EncodingName = "utf-8",
+                                    SkipLineCount = 0,
+                                    FirstRowAsHeader = isFirstRowHeader,
+                                    TreatEmptyAsNull = true
+                                },
+
+                                PartitionedBy = GetFormattedPartitionCollectionInstance(),
+
+                            },
+
+                            Availability = ObjDataSetAvailability,
+
+                            External = false,
+
+                            Policy = new Policy()
+                            {
+                                Validation = new ValidationPolicy()
+                                {
+                                    MinimumRows = 2
+                                }
+                            }
+                        }
+                    }
+                });
+
+                // created output datasets
+                Console.WriteLine(String.Format("Created output dataset - {0} ", datasetDestination));
+            }
+            catch (InvalidOperationException invalidToken)
+            {
+                if (invalidToken.Message.Contains("token") || invalidToken.Message.Contains("expir"))
+                {
+                    Console.WriteLine("Oops! Client Token Expired while creating output data set : ", invalidToken.Message);
+                    client = CreateManagementClientInstance();
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Generic Exception occured and couldnt handled: ", ex.Message);
+            }
+        }
+
+
+        public static bool DeleteDatasets(string searchText, EnumDeleteSearchType type)
         {
             try
             {
                 string nextLink = string.Empty;
 
-                DatasetListResponse respListDatasets = (DatasetListResponse)client.Datasets.List(resourceGroupName, dataFactoryName);
+                DatasetListResponse respListDatasets = (DatasetListResponse)client.Datasets.List(AppSettingsManager.resourceGroupName, AppSettingsManager.dataFactoryName);
 
                 do
                 {
@@ -452,7 +534,7 @@ namespace StreamCentral.ADLSIntegration
 
                     foreach (var ds in respListDatasets.Datasets)
                     {
-                        DeleteDataset(ds.Name, startWithSearchText);
+                        DeleteDataset(ds.Name, searchText,type);
                     }
 
                     respListDatasets = client.Datasets.ListNext(nextLink);
@@ -469,18 +551,50 @@ namespace StreamCentral.ADLSIntegration
             return false;
         }
 
-        public static void DeleteDataset(string datasetName, string startWithSearchText)
+        public static void DeleteDataset(string datasetName, string searchText,EnumDeleteSearchType searchType)
         {
             try
             {
-                if (datasetName.StartsWith(startWithSearchText))
+                switch(searchType)
                 {
-                    Console.WriteLine("Deleting data set: " + datasetName);
+                    case EnumDeleteSearchType.Exact:
+                        {
+                            if(datasetName.ToLower() == searchText.ToLower())
+                            {
+                                Console.WriteLine("Deleting data set: " + datasetName);
 
-                    client.Datasets.Delete(resourceGroupName, dataFactoryName, datasetName);
+                                client.Datasets.Delete(AppSettingsManager.resourceGroupName, AppSettingsManager.dataFactoryName, datasetName);
 
-                    Console.WriteLine("Deleted data set: " + datasetName);
+                                Console.WriteLine("Deleted data set: " + datasetName);
+                            }
+                            break;
+                        }
+                    case EnumDeleteSearchType.Contains:
+                        {
+                            if (datasetName.Contains(searchText))
+                            {
+                                Console.WriteLine("Deleting data set: " + datasetName);
+
+                                client.Datasets.Delete(AppSettingsManager.resourceGroupName, AppSettingsManager.dataFactoryName, datasetName);
+
+                                Console.WriteLine("Deleted data set: " + datasetName);
+                            }
+                            break;
+                        }
+                    case EnumDeleteSearchType.StartWith:
+                        {
+                            if (datasetName.StartsWith(searchText))
+                            {
+                                Console.WriteLine("Deleting data set: " + datasetName);
+
+                                client.Datasets.Delete(AppSettingsManager.resourceGroupName, AppSettingsManager.dataFactoryName, datasetName);
+
+                                Console.WriteLine("Deleted data set: " + datasetName);
+                            }
+                            break;
+                        }
                 }
+                
             }
             catch (Exception ex)
             {
@@ -490,31 +604,63 @@ namespace StreamCentral.ADLSIntegration
 
         public static void DeletePipelines(string startWithSearchText)
         {
+            int deleteStatus = 0, plCount = 0;
+            string plNextLink = String.Empty;
+
             try
             {
-                PipelineListResponse respListPipelines = (PipelineListResponse)client.Pipelines.List(resourceGroupName, dataFactoryName);
+                Console.WriteLine("pipeline to be deleted: " + startWithSearchText);
 
-                foreach (var pl in respListPipelines.Pipelines)
+                PipelineListResponse respListPipelines = (PipelineListResponse) client.Pipelines.List(AppSettingsManager.resourceGroupName, AppSettingsManager.dataFactoryName);
+
+                do
                 {
-                    DeletePipeline(pl.Name, startWithSearchText);
+                    plNextLink = respListPipelines.NextLink;
+
+                    Console.WriteLine("Pipeline Next Link: " + plNextLink);
+
+                    foreach (var pl in respListPipelines.Pipelines)
+                    {
+                        plCount++;
+                        deleteStatus = DeletePipeline(pl.Name, startWithSearchText);
+                    }
+
+                    try
+                    {
+                        respListPipelines = client.Pipelines.ListNext(plNextLink);
+                    }
+                    catch(Exception ex)
+                    {
+                        break;
+                    }
+
+                } while (!String.IsNullOrEmpty(plNextLink));
+                
+                if(deleteStatus ==0 )
+                {
+                    Console.WriteLine("Could not found the pipeline and not sure why ? " + startWithSearchText + " Pipeline count : "+ plCount);
                 }
             }
             catch (Exception ex)
             {
-
+                Console.WriteLine("Exception occured : " + ex.Message + " pipeline count " + plCount);
+                throw ex;
             }
         }
 
-        public static void DeletePipeline(string pipelineName, string startWithSearchText)
+        public static int DeletePipeline(string pipelineName, string startWithSearchText)
         {
-            if (pipelineName.StartsWith(startWithSearchText))
+            Console.WriteLine(" Pipeline Name:  " + pipelineName + "   / To Delete Pipeline Name: " + startWithSearchText);
+            if (pipelineName.ToLower().Equals(startWithSearchText.ToLower()))
             {
                 Console.WriteLine("Deleting pipeline: " + pipelineName);
 
-                client.Pipelines.Delete(resourceGroupName, dataFactoryName, pipelineName);
+                client.Pipelines.Delete(AppSettingsManager.resourceGroupName, AppSettingsManager.dataFactoryName, pipelineName);
 
                 Console.WriteLine("Deleted pipeline: " + pipelineName);
+                return 1;
             }
+            return 0;
         }
 
         public static void CreateOrUpdatePipeline(DataFactoryManagementClient client, string resourceGroupName, string dataFactoryName,
@@ -542,10 +688,13 @@ namespace StreamCentral.ADLSIntegration
                     mode = PipelineMode.Scheduled;
                 }
 
-                Scheduler objActivityScheduler = new Scheduler();
+                Scheduler objActivityScheduler = new Scheduler()
+                {
+                    Interval = Convert.ToUInt16(InitialParams.ActivityFrequencyInterval)
+                };
+                         
 
-                objActivityScheduler.Interval = Convert.ToUInt16(InitialParams.ActivityFrequencyInterval);
-
+                
                 if (isDataDeploy)
                 {
                     objActivityScheduler.Offset = TimeSpan.FromMinutes(Convert.ToDouble(InitialParams.OffsetIntervalOfDataSlice));
@@ -675,7 +824,7 @@ namespace StreamCentral.ADLSIntegration
                                     End = PipelineActivePeriodEndTime,
                                     IsPaused = false,
                                     PipelineMode = mode,
-                                    HubName = cgsHubName,
+                                    HubName = AppSettingsManager.cgsHubName,
                                     ExpirationTime = TimeSpan.FromMinutes(0)
                                 },
                             }
@@ -689,79 +838,188 @@ namespace StreamCentral.ADLSIntegration
                 Console.WriteLine("pipeline " + ex.Message );
             }
         }
-        
-        public static List<DataElement> GenerateStructure(string tableName)
+
+        public static void CreateOrUpdatePipelineForStoredProc(DataFactoryManagementClient client, string resourceGroupName, string dataFactoryName,
+            string linkedServiceName, string pipelineName, string dsInput, string dsOutput, string sqlQuery,
+            DateTime recordDateUTC, string activityName, bool isDataDeploy, CopyOnPremSQLToADLAType cpType)
         {
+            if (String.IsNullOrEmpty(sqlQuery))
+            {
+                Console.WriteLine("Cannot create pipeline. Empty SQL Query");
+                return;
+            }
+
             try
             {
-                List<DataElement> InOutParams = new List<DataElement>();
+                DateTime PipelineActivePeriodStartTime = DateTime.Now.Subtract(TimeSpan.FromDays(1000.00));
+                DateTime PipelineActivePeriodEndTime = PipelineActivePeriodStartTime;
+                TimeSpan objActivityDelayPolicyAttr = TimeSpan.FromMinutes(Convert.ToDouble(InitialParams.DelayIntervalOfActivity));
+                string mode = PipelineMode.OneTime;
 
-                //// Look for the name in the connectionStrings section.
-                SqlConnection connect = SQLUtils.SQLConnect();
-
-                // SqlCommand cmd = SQLUtils.GenerateStoredProcCommand("SCDMTableSchemaProc", tableName);
-                SqlCommand cmd = new SqlCommand(ConfigurationSettings.AppSettings["SCDMTableSchemaProc"], connect);
-                cmd.CommandType = CommandType.StoredProcedure;
-                cmd.Parameters.Add(new SqlParameter("@TableName", tableName));
-
-                if (connect.State == ConnectionState.Closed)
+                if ((isDataDeploy))// && (!cpType.ToString().Equals(CopyOnPremSQLToADLAType.All.ToString())))
                 {
-                    connect.Open();
+                    recordDateUTC.AddHours(3);
+                    PipelineActivePeriodStartTime = recordDateUTC;
+                    PipelineActivePeriodEndTime = recordDateUTC.AddYears(100);
+                    mode = PipelineMode.Scheduled;
                 }
 
-                using (var reader = cmd.ExecuteReader())
+                Scheduler objActivityScheduler = new Scheduler()
                 {
-                    if (reader.HasRows)
-                    {
-                        while (reader.Read())
+                    Interval = Convert.ToUInt16(InitialParams.ActivityFrequencyInterval)
+                };
+
+
+
+                if (isDataDeploy)
+                {
+                    objActivityScheduler.Offset = TimeSpan.FromMinutes(Convert.ToDouble(InitialParams.OffsetIntervalOfDataSlice));
+                }
+
+                if (InitialParams.SliceType == SliceType.Start && isDataDeploy)
+                {
+                    objActivityScheduler.Style = SchedulerStyle.StartOfInterval;
+                }
+
+                switch (InitialParams.ActivityFrequencyType)
+                {
+                    case Frequency.Month:
                         {
-                            var name = reader.GetString(0);
-                            var type = reader.GetString(1);
-
-                            if (!(name == "RecordId" || name == "Seq" || name == "Call_UID" || name == "CreatedBy" ||
-                                name == "CreatedDate" || name == "ModifiedBy" || name == "ModifiedDate" ||
-                                name == "LOCATIONDIMENSIONID" || name == "EntityId" || name == "EntityLocationId" ||
-                                name == "operating_id" || name == "source_id" || (type.Contains("image"))))
-                            {
-
-                                //converting SQL Server datatypes to ADF data types
-                                switch (type)
-                                {
-                                    case "varchar":
-                                        type = "String";
-                                        break;
-                                    case "nvarchar":
-                                        type = "String";
-                                        break;
-                                    case "int":
-                                        type = "Int32";
-                                        break;
-                                    case "bigint":
-                                        type = "Int32";
-                                        break;
-                                    case "datetime":
-                                        type = "DateTime";
-                                        break;
-                                }
-
-                                InOutParams.Add(new DataElement
-                                {
-                                    Name = name,
-                                    Type = type
-                                });
-                            }
+                            objActivityScheduler.Frequency = SchedulePeriod.Month;
+                            break;
                         }
-                        reader.Close();
-                        connect.Close();
-                    }
+                    case Frequency.Day:
+                        {
+                            objActivityScheduler.Frequency = SchedulePeriod.Day;
+                            break;
+                        }
+                    case Frequency.Hour:
+                        {
+                            objActivityScheduler.Frequency = SchedulePeriod.Hour;
+                            break;
+                        }
+                    case Frequency.Minute:
+                        {
+                            objActivityScheduler.Frequency = SchedulePeriod.Minute;
+                            break;
+                        }
+                    default:
+                        {
+                            objActivityScheduler.Frequency = SchedulePeriod.Day;
+                            break;
+                        }
+
                 }
-                return InOutParams;
+
+                if (client == null)
+                {
+                    client = CreateManagementClientInstance();
+                }
+
+                StoredProcedureParameter param = new StoredProcedureParameter()
+                { Type = StoredProcedureParameterType.Date, Value = "$$Text.Format('{0:yyyy-MM-dd HH:mm:ss}', SliceStart)" };
+
+
+                IDictionary<string, string> objlstParams = new Dictionary<string, string>
+                {
+                    { param.Type, param.Value }
+                };// = new IDictionary<string, string>();
+
+                Activity activityInPipeline = new Activity()
+                {
+                    Name = activityName,
+
+                    Outputs = new List<ActivityOutput>() { new ActivityOutput() { Name = dsOutput } },
+
+                    TypeProperties = new SqlServerStoredProcedureActivity()
+                    {
+                        StoredProcedureName = sqlQuery,
+                        StoredProcedureParameters = objlstParams
+                    },
+
+                    Policy = new ActivityPolicy()
+                    {
+                        Timeout = TimeSpan.FromMinutes(3.0),
+                        Delay = objActivityDelayPolicyAttr,
+                        Concurrency = 1,
+                        ExecutionPriorityOrder = ExecutionPriorityOrder.NewestFirst,
+                        LongRetry = 0,
+                        LongRetryInterval = TimeSpan.FromMinutes(0.0),
+                        Retry = 3
+
+                    },
+
+                };
+
+
+                Pipeline pl = null;
+
+                try
+                {
+
+                    Console.WriteLine("Finding existing pipeline: " + pipelineName + " ... " + activityInPipeline.Name);
+
+                    PipelineGetResponse respPipelines = client.Pipelines.Get(resourceGroupName, dataFactoryName, pipelineName);
+                    pl = respPipelines.Pipeline;
+
+                    Console.WriteLine("FIND SUCCESS STATUS: Now updating existing pipeline " + pipelineName + " ... " + activityInPipeline.Name);
+
+                    pl.Properties.Activities.Add(activityInPipeline);
+
+                    PipelineCreateOrUpdateParameters plParameters = new PipelineCreateOrUpdateParameters() { Pipeline = pl };
+
+                    client.Pipelines.CreateOrUpdate(resourceGroupName, dataFactoryName, plParameters);
+
+                    Console.WriteLine("updated successfully existing pipeline: " + pipelineName + " ... " + activityInPipeline.Name);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine("Could not found any existing pipeline: " + ex.Message);
+                }
+
+                if (pl == null)
+                {
+                    // Create a pipeline with a copy activity
+                    Console.WriteLine("Creating new pipeline " + pipelineName + " ... " + activityInPipeline.Name);
+
+                    client.Pipelines.CreateOrUpdate(resourceGroupName, dataFactoryName,
+                        new PipelineCreateOrUpdateParameters()
+                        {
+                            Pipeline = new Pipeline()
+                            {
+                                Name = pipelineName,
+                                Properties = new PipelineProperties()
+                                {
+                                    Description = "Pipeline for data transfer from on-premise SC - SQL Server Datamart to Lake Store",
+
+                                    Activities = new List<Activity>()
+                                    {
+                                        activityInPipeline
+                                    },
+
+
+                                    // Initial value for pipeline's active period. With this, you won't need to set slice status
+                                    Start = PipelineActivePeriodStartTime,
+                                    End = PipelineActivePeriodEndTime,
+                                    IsPaused = false,
+                                    PipelineMode = mode,
+                                    HubName = AppSettingsManager.cgsHubName,
+                                    ExpirationTime = TimeSpan.FromMinutes(0)
+                                },
+                            }
+                        });
+
+                    // Create a pipeline with a copy activity
+                    Console.WriteLine("created new pipeline " + pipelineName + " ... " + activityInPipeline.Name);
+                }
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
-                throw ex;
+                Console.WriteLine("pipeline " + ex.Message);
             }
         }
+
+       
 
 
         public static Availability GetFormattedAvailabilityInstance(bool isDataDeploy)
@@ -818,7 +1076,7 @@ namespace StreamCentral.ADLSIntegration
             }
             catch (Exception ex)
             {
-                throw;
+                throw ex;
             }
             return objAvailability;
         }
@@ -876,65 +1134,7 @@ namespace StreamCentral.ADLSIntegration
             };
 
         
-        }
-
-        //public static string GenerateADFPipelineSQLQuery(string tableName, 
-        //    List<DataElement> inOutParams, string dateField, bool isDataQuery, CopyOnPremSQLToADLAType copyDataType)
-        //{
-        //    string sqlQuery = "$$Text.Format('select ";
-
-        //    int itemIteration = 0;
-        //    foreach (var columnName in inOutParams)
-        //    {
-        //        if (itemIteration < inOutParams.Count - 1)
-        //        {
-        //            sqlQuery = sqlQuery + "[" + columnName.Name + "],";
-        //            itemIteration = itemIteration + 1;
-        //        }
-        //        else
-        //        {
-        //            sqlQuery = sqlQuery + "[" + columnName.Name + "]";
-        //        }
-
-        //    }
-
-        //    if(!(isDataQuery && copyDataType.ToString() == CopyOnPremSQLToADLAType.All.ToString()))
-        //    {
-        //        sqlQuery = sqlQuery + " from " + tableName + " where [" + dateField + "] >= \\'{0:yyyy-MM-dd HH:mm}\\' AND  " +
-        //      " [" + dateField + "] < \\'{1:yyyy-MM-dd HH:mm}\\'', " +
-        //      "WindowStart, WindowEnd)";
-
-        //        return sqlQuery;
-        //    }
-
-        //    switch (copyDataType)
-        //    {
-        //        case CopyOnPremSQLToADLAType.LastIteration:
-        //            {
-
-        //                break;
-        //            }
-        //        case CopyOnPremSQLToADLAType.All:
-        //            {
-        //                sqlQuery = sqlQuery + " from " + tableName + "')";
-        //                break;
-        //            }
-        //        case CopyOnPremSQLToADLAType.Distinct:
-        //            {
-        //                break;
-        //            }
-        //        case CopyOnPremSQLToADLAType.Transactional:
-        //            {
-        //                sqlQuery = sqlQuery + " from " + tableName + " where [" + dateField + "] >= \\'{0:yyyy-MM-dd HH:mm}\\' AND  " +
-        //       " [" + dateField + "] < \\'{1:yyyy-MM-dd HH:mm}\\'', " +
-        //       "WindowStart, WindowEnd)";
-        //                break;
-        //            }
-        //    }
-                    
-
-        //    return sqlQuery;
-        //}
+        }       
 
         public static string GenerateADFPipelineSQLQuery(List<DataElement> inOutParams, string dateField, 
             bool isDataQuery, CopyOnPremSQLToADLAType copyDataType)
@@ -1126,10 +1326,93 @@ namespace StreamCentral.ADLSIntegration
             }
             catch (Exception ex)
             {
-                Console.WriteLine("Unable to execute the sql command: {0}, Exception occured: {1}", cmd.CommandText, ex.Message);
+                Console.WriteLine("Unable to execute the sql command: {0}, Exception occured: {1}", cmd.CommandText, ex.Message);                
             }
 
             return firstDateTime;
         }
+
+        public static List<DataElement> GenerateStructure(string tableName)
+        {
+            try
+            {
+                List<DataElement> InOutParams = new List<DataElement>();
+
+                //// Look for the name in the connectionStrings section.
+                SqlConnection connect = SQLUtils.SQLConnect();
+
+                // SqlCommand cmd = SQLUtils.GenerateStoredProcCommand("SCDMTableSchemaProc", tableName);
+                SqlCommand cmd = new SqlCommand(ConfigurationManager.AppSettings["SCDMTableSchemaProc"], connect)
+                {
+                    CommandType = CommandType.StoredProcedure
+                };
+
+                cmd.Parameters.Add(new SqlParameter("@TableName", tableName));
+
+                if (connect.State == ConnectionState.Closed)
+                {
+                    connect.Open();
+                }
+
+                using (var reader = cmd.ExecuteReader())
+                {
+                    if (reader.HasRows)
+                    {
+                        while (reader.Read())
+                        {
+                            var name = reader.GetString(0);
+                            var type = reader.GetString(1);
+
+                            if (!(name == "RecordId" || name == "Seq" || name == "Call_UID" || name == "CreatedBy" ||
+                                name == "CreatedDate" || name == "ModifiedBy" || name == "ModifiedDate" ||
+                                name == "LOCATIONDIMENSIONID" || name == "EntityId" || name == "EntityLocationId" ||
+                                name == "operating_id" || name == "source_id" || (type.Contains("image"))))
+                            {
+
+                                //converting SQL Server datatypes to ADF data types
+                                switch (type)
+                                {
+                                    case "varchar":
+                                        type = "String";
+                                        break;
+                                    case "nvarchar":
+                                        type = "String";
+                                        break;
+                                    case "int":
+                                        type = "Int32";
+                                        break;
+                                    case "bigint":
+                                        type = "Int32";
+                                        break;
+                                    case "datetime":
+                                        type = "DateTime";
+                                        break;
+                                    case "time":
+                                        type = "DateTime";
+                                        break;
+                                    case "nchar":
+                                        type = "String";
+                                        break;
+                                }
+
+                                InOutParams.Add(new DataElement
+                                {
+                                    Name = name,
+                                    Type = type
+                                });
+                            }
+                        }
+                        reader.Close();
+                        connect.Close();
+                    }
+                }
+                return InOutParams;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+
     }
 }

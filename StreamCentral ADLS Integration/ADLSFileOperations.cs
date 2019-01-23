@@ -18,14 +18,14 @@ namespace StreamCentral.ADLSIntegration
 {
     class ADLSFileOperations
     {
-        private static string _adlsName = ConfigurationSettings.AppSettings["adlsName"] + ".azuredatalakestore.net";
+        private static readonly string _adlsName = ConfigurationManager.AppSettings["adlsName"] + ".azuredatalakestore.net";
 
-        static AdlsClient client;
+        public static AdlsClient client;
 
         static ADLSFileOperations()
         {
-            //var creds = new ClientCredential(ConfigurationSettings.AppSettings["ApplicationId"], ConfigurationSettings.AppSettings["Password"]);
-            //ServiceClientCredentials clientCreds2 = ApplicationTokenProvider.LoginSilentAsync(ConfigurationSettings.AppSettings["ActiveDirectoryTenantId"], creds).GetAwaiter().GetResult();
+            //var creds = new ClientCredential(ConfigurationManager.AppSettings["ApplicationId"], ConfigurationManager.AppSettings["Password"]);
+            //ServiceClientCredentials clientCreds2 = ApplicationTokenProvider.LoginSilentAsync(ConfigurationManager.AppSettings["ActiveDirectoryTenantId"], creds).GetAwaiter().GetResult();
 
             //client = AdlsClient.CreateClient(_adlsName, clientCreds2);
         }
@@ -64,7 +64,7 @@ namespace StreamCentral.ADLSIntegration
             }
             catch (Exception ex)
             {
-
+                throw ex;
             }
 
         }
@@ -193,7 +193,7 @@ namespace StreamCentral.ADLSIntegration
             }
             catch (Exception ex)
             {
-
+                throw ex;
             }
 
         }

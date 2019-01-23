@@ -16,7 +16,7 @@ namespace StreamCentral.ADLSIntegration
 
         static SQLUtils()
         {
-            connection = new SqlConnection(ConfigurationSettings.AppSettings["SCDMConn"]);
+            connection = new SqlConnection(ConfigurationManager.AppSettings["SCDMConn"]);
         }
         public static SqlConnection SQLConnect()
         {
@@ -25,17 +25,22 @@ namespace StreamCentral.ADLSIntegration
 
         public static SqlCommand GenerateStoredProcCommand(string spName, string tableName)
         {
-            SqlCommand cmd = new SqlCommand(ConfigurationSettings.AppSettings[spName], connection);
-            cmd.CommandType = CommandType.StoredProcedure;
+            SqlCommand cmd = new SqlCommand(ConfigurationManager.AppSettings[spName], connection)
+            {
+                CommandType = CommandType.StoredProcedure
+            };
+
             cmd.Parameters.Add(new SqlParameter("@TableName", tableName));
             return cmd;
         }
 
         public static SqlCommand GenerateStoredProcCommand(string spName, string Param1, string Param2, string Param3)
         {
-            SqlCommand cmd = new SqlCommand(ConfigurationSettings.AppSettings[spName], connection);
-            cmd.CommandType = CommandType.StoredProcedure;
-
+            SqlCommand cmd = new SqlCommand(ConfigurationManager.AppSettings[spName], connection)
+            {
+                CommandType = CommandType.StoredProcedure
+            };
+        
             cmd.Parameters.Add(new SqlParameter("@SearchText01", Param1));
             cmd.Parameters.Add(new SqlParameter("@SearchText02", Param2));
             cmd.Parameters.Add(new SqlParameter("@SearchText03", Param3));
@@ -45,11 +50,14 @@ namespace StreamCentral.ADLSIntegration
 
         public static SqlCommand GenerateSQLQueryCommand(string sqlQuery)
         {
-            SqlCommand cmd = new SqlCommand(sqlQuery, connection);
-            cmd.CommandType = CommandType.Text;
-            cmd.CommandText = sqlQuery;
+            SqlCommand cmd = new SqlCommand(sqlQuery, connection)
+            {
+                CommandType = CommandType.Text,
+                CommandText = sqlQuery
+             };                 
+
             return cmd;
-        }
+        }      
     }
 
 }

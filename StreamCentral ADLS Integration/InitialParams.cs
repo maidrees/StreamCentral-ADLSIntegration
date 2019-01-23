@@ -56,6 +56,16 @@ namespace StreamCentral.ADLSIntegration
 
         private static string _temppathdeviation = String.Empty;
 
+        private static string _deletePipelineName = String.Empty;
+
+        private static string _deleteInputDataSetName = String.Empty;
+
+        private static string _deleteOutputDataSetName = String.Empty;
+
+        private static EnumSourceType _sourceType = Utils.GetSourceType(String.Empty);
+
+        private static EnumSourceStructureType _sourceStructureType = Utils.GetSourceStructureType(String.Empty);
+
         public static string FilterDistinctField
         {
             get
@@ -82,10 +92,11 @@ namespace StreamCentral.ADLSIntegration
             {
                 try
                 {
-                    return (String.IsNullOrEmpty(_folderPath) ? ConfigurationSettings.AppSettings["folderPath"] : _folderPath);
+                    return (String.IsNullOrEmpty(_folderPath) ? ConfigurationManager.AppSettings["folderPath"] : _folderPath);
                 }
                 catch(Exception ex)
                 {
+                    Console.WriteLine("some exception occured in reading the ADLS folder path : " + ex.Message);
                     return String.Empty;
                 }
             }
@@ -174,7 +185,10 @@ namespace StreamCentral.ADLSIntegration
         {
             get
             {
-                //return  (String.IsNullOrEmpty(_tablePathInADLS)) ?  Utils.GetFormattedFolderPath(_tableName) : _tablePathInADLS;
+                if (String.IsNullOrEmpty(_tablePathInADLS))
+                {
+                    _tablePathInADLS = Utils.GetFormattedFolderPath(_tableName);
+                }               
                 return _tablePathInADLS;
             }
             set
@@ -246,7 +260,10 @@ namespace StreamCentral.ADLSIntegration
             get { return _temppathdeviation; }
             set
             {
-                _temppathdeviation = value;
+                if (!String.IsNullOrEmpty(value))
+                {
+                    _temppathdeviation = value + "/";
+                }
             }
         }
 
@@ -255,7 +272,10 @@ namespace StreamCentral.ADLSIntegration
             get { return _tempcompprefix; }
             set
             {
-                _tempcompprefix = value;
+                if (!String.IsNullOrEmpty(value))
+                {
+                    _tempcompprefix = value + "_";
+                }
             }
         }
 
@@ -265,6 +285,43 @@ namespace StreamCentral.ADLSIntegration
             set
             {
                 _sliceType = value;
+            }
+        }
+
+        public static string DeletePipelineName
+        {
+            get { return _deletePipelineName;  }
+            set { _deletePipelineName = value; }
+        }
+
+        public static string DeleteInputDataSetName
+        {
+            get { return _deleteInputDataSetName; }
+            set { _deleteInputDataSetName = value; }
+        }
+
+        public static string DeleteOutputDataSetName
+        {
+            get { return _deleteOutputDataSetName; }
+            set { _deleteOutputDataSetName = value; }
+        }
+
+        public static EnumSourceType SourceType
+        {
+            get { return _sourceType; }
+            set
+            {
+                _sourceType = value;
+            }
+
+        }
+
+        public static EnumSourceStructureType SourceStructureType
+        {
+            get { return _sourceStructureType; }
+            set
+            {
+                _sourceStructureType = value;
             }
         }
     }

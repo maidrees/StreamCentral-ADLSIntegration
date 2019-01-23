@@ -64,12 +64,37 @@ namespace StreamCentral.ADLSIntegration
         datasourcepathinadls,
         slicetype,
         temppathdeviation,
-        tempcompprefix
+        tempcompprefix,
+        pipelinename,
+        inputds,
+        outputds,
+        sourcetype,
+        sourceStructureType
     }
 
     public enum SliceType
     {
         Start,
         End
+    }
+
+    public enum EnumSourceType
+    {
+        OnPremiseSQLServer,
+        AzureSQLServer
+    }
+
+    public enum EnumDeleteSearchType
+    {
+        Exact,
+        StartWith,
+        Contains            
+    }
+
+    public enum EnumSourceStructureType
+    {
+        Table,
+        StoredProc,
+        TableView
     }
 }
