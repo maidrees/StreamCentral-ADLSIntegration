@@ -5,13 +5,23 @@ using System.Threading.Tasks;
 using System.Configuration;
 using System.Collections.ObjectModel;
 using System.Data.SqlClient;
-
-using Microsoft.Azure;
-using Microsoft.Azure.Management.DataFactories;
-using Microsoft.Azure.Management.DataFactories.Models;
-using Microsoft.Azure.Management.DataFactories.Common.Models;
+using Microsoft.Azure.DataLake.Store;
+using Microsoft.Azure.Management.DataLake.Store;
+using Microsoft.Azure.Management.DataFactories.Common;
+using Microsoft.Azure.Management.ResourceManager;
+using Microsoft.Azure.Management.DataFactory;
+using Microsoft.Azure.Management.DataFactory.Models;
 using Microsoft.IdentityModel.Clients.ActiveDirectory;
-
+using Microsoft.Azure.Management.DataFactories.Common.Models;
+using Microsoft.Rest.ClientRuntime;
+using Microsoft.Rest.ClientRuntime.Azure;
+using Microsoft.Rest.ClientRuntime.Azure.Authentication;
+using Microsoft.Rest;
+using Microsoft.Rest.Azure.Authentication;
+using Npgsql;
+using Newtonsoft.Json.Linq;
+using Microsoft.Azure.Management.Storage;
+using Microsoft.Azure.Management.DataFactories.Models;
 
 namespace StreamCentral.ADLSIntegration
 {
@@ -268,7 +278,7 @@ namespace StreamCentral.ADLSIntegration
                         Name = "AzureStorageLinkedService",
                         Properties = new LinkedServiceProperties
                         (
-                            new AzureStorageLinkedService("DefaultEndpointsProtocol=https;AccountName=<storageaccountname>;AccountKey=<accountkey>")
+                            new Microsoft.Azure.Management.DataFactory.Models.AzureStorageLinkedService("DefaultEndpointsProtocol=https;AccountName=<storageaccountname>;AccountKey=<accountkey>")
                         )
                     }
                 }
@@ -925,7 +935,7 @@ namespace StreamCentral.ADLSIntegration
                     { param.Type, param.Value }
                 };// = new IDictionary<string, string>();
 
-                Activity activityInPipeline = new Activity()
+                Microsoft.Azure.Management.DataFactories.Core.Models.Activity activityInPipeline = new Activity()
                 {
                     Name = activityName,
 
@@ -992,7 +1002,7 @@ namespace StreamCentral.ADLSIntegration
                                 {
                                     Description = "Pipeline for data transfer from on-premise SC - SQL Server Datamart to Lake Store",
 
-                                    Activities = new List<Activity>()
+                                    Activities = new List<Microsoft.Azure.Management.DataFactory.Models.Activity>()
                                     {
                                         activityInPipeline
                                     },

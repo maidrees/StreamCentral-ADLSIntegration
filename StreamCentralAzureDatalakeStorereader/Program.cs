@@ -6,15 +6,18 @@ using System.Threading.Tasks;
 using System.Configuration;
 using Microsoft.Azure.DataLake.Store;
 using Microsoft.Azure.Management.DataLake.Store;
+using Microsoft.Azure.Management.DataFactory;
+using Microsoft.Azure.Management.DataFactory.Models;
+using Microsoft.Rest.ClientRuntime;
+using Microsoft.Rest.ClientRuntime.Azure.Authentication;
+using Microsoft.Rest;
 using Microsoft.Rest.Azure.Authentication;
 using Npgsql;
 using Newtonsoft.Json.Linq;
 using System.Data;
 using System.Data.SqlClient;
-using Microsoft.Azure.Management.DataFactory;
-using Microsoft.Rest;
 using Microsoft.IdentityModel.Clients.ActiveDirectory;
-using Microsoft.Azure.Management.DataFactory.Models;
+
 
 namespace AzureDatalakeStorereader
 {
@@ -424,7 +427,7 @@ namespace AzureDatalakeStorereader
             
             Logging.WriteToLog(LoggerEnum.INFO, "GetDatamartCount Start time : " + DateTime.Now, filename);
            
-            string query = "select count(1) from Fact_" + tableName + "metricdetails where recorddateutc>='" + date.ToString("yyyy-MM-dd") + "' and recorddateutc<='" + DateTime.Now + "'";
+            string query = "select count(1) from Fact_" + tableName + "metricdetails where recorddateutc>='" + date.ToString("yyyy-MM-dd") + "' and recorddateutc<='" + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + "'";
             Logging.WriteToLog(LoggerEnum.INFO, query, filename);
             string result = string.Empty;
             try

@@ -5,16 +5,19 @@ using System.Threading.Tasks;
 using System.Configuration;
 using System.Collections.ObjectModel;
 using System.Data.SqlClient;
-
-
-using Microsoft.Rest;
-using Microsoft.Azure;
+using Microsoft.Azure.Management.DataLake.Store;
+//using Microsoft.Azure.Management.DataFactories;
 using Microsoft.Azure.Management.DataFactory;
 using Microsoft.Azure.Management.DataFactory.Models;
+using Microsoft.Azure.DataLake.Store;
+using Microsoft.Rest.ClientRuntime;
+using Microsoft.Rest.ClientRuntime.Azure.Authentication;
+using Microsoft.Rest;
+using Microsoft.Rest.Azure.Authentication;
+using Npgsql;
+using Newtonsoft.Json.Linq;
 using Microsoft.IdentityModel.Clients.ActiveDirectory;
 using Microsoft.Azure.Management.ResourceManager;
-
-
 
 namespace StreamCentral.ADLSIntegration
 {
