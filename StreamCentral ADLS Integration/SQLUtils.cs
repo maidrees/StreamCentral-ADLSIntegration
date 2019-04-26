@@ -18,6 +18,7 @@ namespace StreamCentral.ADLSIntegration
         {
             connection = new SqlConnection(ConfigurationManager.AppSettings["SCDMConn"]);
         }
+
         public static SqlConnection SQLConnect()
         {
             return connection;

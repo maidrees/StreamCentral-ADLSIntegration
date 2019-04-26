@@ -22,29 +22,22 @@ namespace AzureDatalakeStorereader
     {
         private static string[] argList;
         public static AdlsClient client;
-        public static string connString = ConfigurationManager.AppSettings["MasterConnString"];// "User ID=postgres;Password=pass@word1;Host=127.0.0.1;Port=5432;Database=prod10thdec;";
         public static NpgsqlConnection conn = null;
-        public static string datamartconnString = ConfigurationManager.AppSettings["SCDMConn"];//@"Persist Security Info=False;Integrated Security=false;Initial Catalog = datamartCareysLive; Server=172.20.0.6\MSSQLSERVERDEV;User Id=sa;Password=Unl0ckm3";
-        public static SqlConnection datamartconn = new SqlConnection(datamartconnString);
-        
+
+        public static string filenamemain = "LogFileInput";
+
         static void Main(string[] args)
         {
             var applicationId = ConfigurationManager.AppSettings["ApplicationId"];// "b93a619a-d985-49e4-a3f4-b9e97f958bb5";
             var secretKey = ConfigurationManager.AppSettings["Password"];//"cAxb4+mSLXfMZhulLbm5+t9Jx65z1TkR3MH8yv1pEMU=";
             var tenantId = ConfigurationManager.AppSettings["ActiveDirectoryTenantId"];//"90fa383b-7959-47d2-8c3a-ece9d79acd2b";
             var adlsAccountName = ConfigurationManager.AppSettings["adlsName"] + ".azuredatalakestore.net";
-
-
             var creds = ApplicationTokenProvider.LoginSilentAsync(tenantId, applicationId, secretKey).Result;
 
             client = AdlsClient.CreateClient(adlsAccountName, creds);
-        
-
 
             try
             {
-               
-
                 argList = args;
 
                 if (argList != null && argList.Length > 0 && argList.First().Contains("1"))
@@ -59,8 +52,6 @@ namespace AzureDatalakeStorereader
                 {
                     GetDatalakedata(client);
                 }
-
-
             }
             catch (Exception ex)
             {
@@ -69,16 +60,9 @@ namespace AzureDatalakeStorereader
             }
             finally
             {
-                datamartconn.Close();
-                datamartconn = null;
                 client = null;
                 creds = null;
             }
-
-
-
-
-
         }
 
         private static void RerunPipeline(ServiceClientCredentials cred)
@@ -111,311 +95,178 @@ namespace AzureDatalakeStorereader
 
         public static void GetDatalakedata(AdlsClient client)
         {
-
-
-            JObject json = JObject.Parse("{'INPUT':{'TransType':'dashboard','VID':34,'LoginId':1619,'filter':'all','pagesize':10,'pagenumber':0,'lastid':0}}");
-            string connString = ConfigurationManager.AppSettings["MasterConnString"];// "User ID=postgres;Password=pass@word1;Host=127.0.0.1;Port=5432;Database=prod10thdec;";
-            string filenamemain = "LogFileInput";
-            Logging.WriteToLog(LoggerEnum.INFO, connString, filenamemain);
-            NpgsqlConnection conn;
+            Logging.WriteToLog(LoggerEnum.INFO, "Get Datalakedata Entry: ", filenamemain);
 
             try
             {
-                Logging.WriteToLog(LoggerEnum.INFO, "connection string message" , filenamemain);
-              
-                    conn = new NpgsqlConnection(connString);
+                JObject jOpAllSourcesData = (JObject.Parse(DataSourceDetails.ExecuteDataSourceDetails()));
 
-                    conn.Open();
-             
-                 
-                    NpgsqlCommand command = new NpgsqlCommand("select usp_dbservgetsourcecommonurl('" + json.ToString() + "')", conn);
-                    command.CommandTimeout = 0;
-                   
-                  
-           
-               
-                object objResult = command.ExecuteScalar();
-                string strresult = objResult.ToString();
-                Logging.WriteToLog(LoggerEnum.INFO, "INPUTquery" + strresult, filenamemain);
-                JObject js = JObject.Parse(strresult);
-                JArray jarr = (JArray)js["SPOKE"];
+                DataSourceDetails.Sources = DataSourceDetails.LoadDataSourceObjects(jOpAllSourcesData);
 
-                Console.WriteLine("No. datasources" + jarr.Count);
+                Console.WriteLine("Number of data sources: " + DataSourceDetails.Sources.Count);
 
-                foreach (JObject jojbj in jarr)
+                foreach (JObject JSourceData in DataSourceDetails.Sources)
                 {
+                    IEnumerable<DirectoryEntry> v = null;
+                    JObject joutputmain = new JObject();
+                    JObject engines = (JObject)JSourceData["engines"];
+                    JArray pull = null;
                     string id = "0";
-                    string sourcename = jojbj["SPOKENAME"].ToString();
-                    string sourceid = jojbj["SOURCEID"].ToString();
+                    string sourcename = JSourceData["SPOKENAME"].ToString();
+                    string sourceid = JSourceData["SOURCEID"].ToString();
                     string filename = "logfileoutput" + sourcename + "_" + sourceid;
-                    Console.WriteLine("DATASOURCE:" + sourceid );
-                    Console.WriteLine("DATASOURCE:" + sourcename + " started");
-                    bool isdbstatusupdated = false;
                     string sqlcount = string.Empty;
-                    bool sqlcall = false;
-
-
+                    string createddate = string.Empty;
+                    JObject jsonOpattr = new JObject();
+                    
                     Logging.WriteToLog(LoggerEnum.INFO, "sourcename  : " + sourcename, filename);
                     Logging.WriteToLog(LoggerEnum.INFO, "sourceid  : " + sourceid, filename);
+                    Console.WriteLine("DATASOURCE: sourceid: " + sourceid + "sourcename: " + sourcename + " started");
 
-                    JObject engines = (JObject)jojbj["engines"];
-                    JArray pull = null;
-                    string createddate = string.Empty;
                     try
                     {
                         pull = (JArray)engines["f1"];
                         createddate = pull[0]["createddate"].ToString();
-                        createddate=createddate.Substring(0,10);
+                        createddate = createddate.Substring(0, 10);
                         id = pull[0]["id"].ToString();
                     }
                     catch (Exception ex)
                     {
-                        createddate = DateTime.Now.ToString("MM/dd/yyyy");
-                
+                        createddate = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
                     }
 
                     Logging.WriteToLog(LoggerEnum.INFO, "createddate  : " + createddate, filename);
                     Logging.WriteToLog(LoggerEnum.INFO, "id  : " + id, filename);
 
                     DateTime dtcreateddate = Convert.ToDateTime(createddate);
-                    
+
                     try
                     {
-                        if (!sqlcall)
-                        {
-                            sqlcount = GetDatamartCount(sourcename, dtcreateddate, filename);
-                            sqlcall = true;
-                        }
+                        sqlcount = GetDatamartCount(sourcename, dtcreateddate, filename);
                     }
-                    catch(Exception exdb)
+                    catch (Exception exdb)
                     {
-                        Logging.WriteToLog(LoggerEnum.INFO, "EXCEPTION FOR SQL  : " + exdb.Message, filename);
+                        Logging.WriteToLog(LoggerEnum.ERROR, "Exception occured for fetching the source records count in DM: " + exdb.Message, filename);
                     }
 
-
+                    jsonOpattr["TransType"] = "updatedatalakestore";
+                    jsonOpattr["sqlcount"] = sqlcount;
+                    jsonOpattr["SOURCEID"] = sourceid;
+                    jsonOpattr["id"] = id;
+                    
                     string containerpath = GetdataSourceType(sourcename);
-                    bool patherror = false;
+                    
+                    string[] adlsFilePaths = FormatAdlsFilePaths(containerpath,sourcename);
 
-                    string path1 = "/" + ConfigurationManager.AppSettings["folderPath"] + "/DL-" + containerpath + "/" + sourcename + "/" + sourcename + "_Transactional";
-                    string path2 = "/" + ConfigurationManager.AppSettings["folderPath"] + "/DL-" + containerpath + "/" + sourcename + "/1Day_Transactional_" + sourcename;
-                    string path3 = "/" + ConfigurationManager.AppSettings["folderPath"] + "/DL-" + containerpath + "/Fact_" + sourcename + "/1Day_Transactional_Fact_" + sourcename;
-
-
-
-                    ///Careys-Provisioned-Data-Live/DL-ServiceNow/DSServiceNowUsers/1Day_Transactional_DSServiceNowUsers
-                    /// /Careys-Provisioned-Data-Live/DL-ServiceNow/DSServiceNowUsers/DSServiceNowUsers_Transactional
-
-                    //Careys-Provisioned-Data-Live/DL-ServiceNow/DSServiceNowUsers/1Day_Transactional_DSServiceNowUsers
-                    //Careys-Provisioned-Data-Live/DL-MicrosoftDynamics/DSDynamicCareysProject/1Day_Transactional_DSDynamicCareysProject
-
-
-                    int iterator = 0;
-                    JObject joutput =  new JObject();
-                    joutput["TransType"] = "updatedatalakestore";
-                    joutput["sqlcount"] = sqlcount;
-                    joutput["SOURCEID"] = sourceid;
-                    joutput["id"] = id;
-                    do
+                    foreach (string path in adlsFilePaths)
                     {
-                        iterator++;
-                       
                         try
                         {
+                            v = client.EnumerateDirectory(path);
 
-                           
+                            Logging.WriteToLog(LoggerEnum.INFO, "ADLS path: " + path, filename);
 
-                            if (patherror)
+                            Console.WriteLine(path);
+
+                            if (v != null)
                             {
-                                path2 = path1;
-                                patherror = false;
-                            }
+                                var v1 = (from cust in v
+                                         where cust.LastModifiedTime >= dtcreateddate
+                                         orderby cust.LastModifiedTime descending
+                                         select cust).Take(1).ElementAt(0);
 
-                            if (iterator == 3 && sourcename.Contains("dynamics") && patherror)
-
-                            {
-                                path2 = path3;
-                                patherror = false;
-                            }
-
-                            
-
-                            IEnumerable<DirectoryEntry> v = client.EnumerateDirectory(path2);
-
-                            Logging.WriteToLog(LoggerEnum.INFO, "ADLA path : " + path2, filename);
-
-                            if (v == null)
-                            {
-                                // resetpath:
-                                Logging.WriteToLog(LoggerEnum.INFO, "v is null : " + path2, filename);
-                                v = client.EnumerateDirectory(path1);
-
-                            }
-
-                            var v1 = from cust in v
-                                     where cust.LastModifiedTime >= dtcreateddate
-                                     orderby cust.LastModifiedTime descending
-                                     select cust;
-                            Logging.WriteToLog(LoggerEnum.INFO, "lambda query", filename);
-
-
-                            foreach (var v2 in v1)
-                            {
-                                Logging.WriteToLog(LoggerEnum.INFO, "for loop" , filename);
-
-                                if (v2 != null && v2.Length > 1)
+                                Logging.WriteToLog(LoggerEnum.INFO, "lambda query", filename);
+                                
+                                if (v1 != null && v1.Length > 1)
                                 {
-                                    string rep = v2.Name.Replace("Data_", "");
+                                    string rep = v1.Name.Replace("Data_", "");
+
                                     Console.WriteLine("Success");
-                                    Console.WriteLine("LAST MODIFIED:{0},Length:{1},Name:{2}", v2.LastModifiedTime, v2.Length, v2.Name);
-                                    Logging.WriteToLog(LoggerEnum.INFO, "v2.LastModifiedTime" + v2.LastModifiedTime, filename);
-                                    Logging.WriteToLog(LoggerEnum.INFO, "v2.Length" + v2.Length, filename);
-                                    Logging.WriteToLog(LoggerEnum.INFO, "v2.Name" + v2.Name, filename);
-                                    // JObject joutput = JObject.Parse(" {'INPUT':{'TransType':'updatedatalakestore', 'path':'" + rep + "','size':" + v2.Length + ", 'filename':'" + v2.Name + "',  'lastmodifieddate':'" + v2.LastModifiedTime + "', 'sqlcount':" + sqlcount + ",'SOURCEID':" + sourceid + "} } ')");
-                                    //JObject joutput = new JObject();
+                                    Console.WriteLine("LAST MODIFIED:{0},Length:{1},Name:{2}", v1.LastModifiedTime, v1.Length, v1.Name);
+                                    Logging.WriteToLog(LoggerEnum.INFO, "v1.LastModifiedTime" + v1.LastModifiedTime, filename);
+                                    Logging.WriteToLog(LoggerEnum.INFO, message: "v1.Length" + v1.Length, fileName: filename);
+                                    Logging.WriteToLog(LoggerEnum.INFO, message: "v1.Name" + v1.Name, fileName: filename);
 
-                                    joutput["path"] = rep;
-                                    joutput["size"] = v2.Length;
-                                    joutput["filename"] = v2.Name;
-                                    joutput["lastmodifieddate"] = v2.LastModifiedTime;
+                                    jsonOpattr["path"] = rep;
+                                    jsonOpattr["size"] = v1.Length;
+                                    jsonOpattr["filename"] = v1.FullName;
+                                    jsonOpattr["lastmodifieddate"] = v1.LastModifiedTime;
 
-
-
-
-                                    JObject joutputmain = new JObject();
-                                    joutputmain["INPUT"] = joutput;
-                                    Console.WriteLine("joutput :" + joutputmain);
-                                    isdbstatusupdated = true;
-                                    UpdateStatus(joutputmain.ToString(), filename);
-
-                                    break;
+                                    if (jsonOpattr["lastmodifieddate"] != null)
+                                    {
+                                        joutputmain["INPUT"] = jsonOpattr;
+                                    }
                                 }
                                 else
                                 {
                                     Console.WriteLine("file size is less");
-                                    JObject joutputmain = new JObject();
-                                    joutputmain["INPUT"] = joutput;
-                                    Console.WriteLine("joutput :" + joutputmain);
-                                    isdbstatusupdated = true;
-                                    UpdateStatus(joutputmain.ToString(), filename);
+
+                                    joutputmain["INPUT"] = jsonOpattr;
                                 }
+
+                                Console.WriteLine("joutput :" + joutputmain);
+
+                                UpdateADLSFileMoficationDateStatus(joutputmain.ToString(), filename);
 
                             }
                         }
-                        catch (Exception ex)
+                        catch (AdlsException ex)
                         {
-                            Console.WriteLine("Exception :" + ex.Message);
-                            Logging.WriteToLog(LoggerEnum.INFO, "Exception : " + ex.Message, filename);
-
-                            if (ex.Message.ToLower().Contains("for path"))
-                                patherror = true;
-
-                            if (iterator == 3 && sourcename.Contains("dynamics"))
-                            {
-                                if (!isdbstatusupdated)
-                                {
-                                    JObject joutputmain = new JObject();
-                                    joutputmain["INPUT"] = joutput;
-                                    UpdateStatus(joutputmain.ToString(), filename);
-                                    isdbstatusupdated = true;
-
-                                }
-                                break;
-                            }
-                            else if (iterator == 2 && !sourcename.Contains("dynamics"))
-                            {
-                                if (!isdbstatusupdated)
-                                {
-                                    JObject joutputmain = new JObject();
-                                    joutputmain["INPUT"] = joutput;
-                                    UpdateStatus(joutputmain.ToString(), filename);
-                                    isdbstatusupdated = true;
-
-                                }
-                                break;
-
-                            }
+                            Logging.WriteToLog(LoggerEnum.INFO, "Exception occured in finding the path: " + path, filename);
                         }
-                        finally
-                        {
+                    }   
+                    
 
-                            if (iterator == 3 && sourcename.Contains("dynamics"))
-                            {
-                                if (!isdbstatusupdated)
-                                {
-                                    JObject joutputmain = new JObject();
-                                    joutputmain["INPUT"] = joutput;
-                                    UpdateStatus(joutputmain.ToString(), filename);
-                                    isdbstatusupdated = true;
-                                    
-                                }
-                               
-                            }
-                            else if (iterator == 2 && !sourcename.Contains("dynamics"))
-                            {
-                                if (!isdbstatusupdated)
-                                {
-                                    JObject joutputmain = new JObject();
-                                    joutputmain["INPUT"] = joutput;
-                                    UpdateStatus(joutputmain.ToString(), filename);
-                                    isdbstatusupdated = true;
-
-                                }
-                               
-
-                            }
-                        }
-
-
-                    }
-                    while (patherror);
-
-
-                    Console.WriteLine("DATASOURCE:" + sourcename + " ENDED");
-                    joutput = null;
-                    engines = null;
-                    pull = null;
-                }
+                }                          
+                              
                 Console.WriteLine("DATASOURCE ITERATIONS COMPLETED");
-                conn.Close();
+               
                 Console.Read();
             }
 
             catch (Exception ex1)
             {
-
-
                 Console.WriteLine("MAIN :" + ex1.Message);
                 Logging.WriteToLog(LoggerEnum.ERROR, ex1.Message, "MainException");
                 Console.Read();
-
             }
-
-
         }
-        public static void UpdateStatus(string input,string filename)
 
+        private static string[] FormatAdlsFilePaths(string containerpath, string sourcename)
+        {
+            if (sourcename.Contains("DSAstaCloudProjectdboProject")) { }
+            string[] paths = new string[3];
+            paths[0] = "/" + ConfigurationManager.AppSettings["folderPath"] + "/DL-" + containerpath + "/" + sourcename + "/" + sourcename + "_Transactional";
+            paths[1] = "/" + ConfigurationManager.AppSettings["folderPath"] + "/DL-" + containerpath + "/" + sourcename + "/1Day_Transactional_" + sourcename;
+            paths[2] = "/" + ConfigurationManager.AppSettings["folderPath"] + "/DL-" + containerpath + "/Fact_" + sourcename + "/1Day_Transactional_Fact_" + sourcename;
+
+            return paths;
+        }
+       
+
+        public static void UpdateADLSFileMoficationDateStatus(string input,string filename)
         {
             try
             {
-                Logging.WriteToLog(LoggerEnum.INFO, "UpdateStatus Start time : " + DateTime.Now, filename);
+                Logging.WriteToLog(LoggerEnum.INFO, "UpdateADLSFileMoficationDateStatus Start time : " + DateTime.Now, filename);
                 Logging.WriteToLog(LoggerEnum.INFO, input, filename);
-                NpgsqlConnection connus = new NpgsqlConnection(connString);
-                connus.Open();
                 string comm = "select usp_dbservgetsourcecommonurl('" + input.ToString() + "')";
                 Logging.WriteToLog(LoggerEnum.INFO, comm, filename);
-                NpgsqlCommand commandus = new NpgsqlCommand(comm, connus);
-                object objResult1 = commandus.ExecuteScalar();
+
+                MasterDBUtils.MasterDBConnect();
+                object objResult1 = MasterDBUtils.GenerateSQLQueryCommand(comm).ExecuteScalar();
                 string strresult2 = objResult1.ToString();
                 Logging.WriteToLog(LoggerEnum.INFO, "OUTPUT" + strresult2, filename);
-                connus.Close();
-                connus = null;
-                commandus.Dispose();
-                commandus = null;
                 Logging.WriteToLog(LoggerEnum.INFO, input, filename);
-                Logging.WriteToLog(LoggerEnum.INFO, "UpdateStatus End time : " + DateTime.Now, filename);
+                Logging.WriteToLog(LoggerEnum.INFO, "UpdateADLSFileMoficationDateStatus End time : " + DateTime.Now, filename);
             }
             catch (Exception exup)
             {
+                MasterDBUtils.CloseConnections();
+            }
+            finally
+            {
+                MasterDBUtils.CloseConnections();
             }
         }
 
@@ -423,33 +274,45 @@ namespace AzureDatalakeStorereader
         {
             
             Logging.WriteToLog(LoggerEnum.INFO, "GetDatamartCount Start time : " + DateTime.Now, filename);
-           
-            string query = "select count(1) from Fact_" + tableName + "metricdetails where recorddateutc>='" + date.ToString("yyyy-MM-dd") + "' and recorddateutc<='" + DateTime.Now + "'";
-            Logging.WriteToLog(LoggerEnum.INFO, query, filename);
+
             string result = string.Empty;
+            
+            string query = "select count(1) from Fact_" + tableName + "metricdetails where recorddateutc>='" + date.ToString("yyyy-MM-dd") + "' and recorddateutc<='" + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + "'";
+
+            Logging.WriteToLog(LoggerEnum.INFO, query, filename);
+            
             try
             {
-                if (datamartconn.State == ConnectionState.Closed)
-                    datamartconn.Open();
-
                 Console.WriteLine("SQL DATAMART CONN is CONNECTED");
-                SqlCommand sqlCommand = new SqlCommand(query, datamartconn);
-                object obj2 = sqlCommand.ExecuteScalar();
+
+                SqlConnection connect = SQLUtils.SQLConnect();
+
+                SqlCommand cmd = SQLUtils.GenerateSQLQueryCommand(query);
+
+                if (connect.State == ConnectionState.Closed)
+                {
+                    connect.Open();
+                }
+                object obj2 = cmd.ExecuteScalar();
+
                 result = obj2.ToString();
-               // datamartconn.Close();
-                sqlCommand.Dispose();
+
+                
                 Logging.WriteToLog(LoggerEnum.INFO, result, filename);
             } catch (Exception ex)
             {
                 result = "-1";
                 Logging.WriteToLog(LoggerEnum.INFO, result, filename);
+
                 Console.WriteLine("SQL DATAMART CONN is FAILED");
+
                 Logging.WriteToLog(LoggerEnum.ERROR, ex.Message, filename);
             }
             
             Logging.WriteToLog(LoggerEnum.INFO, "GetDatamartCount End time : " + DateTime.Now, filename);
             return result;
         }
+
         public static string GetdataSourceType(string tableName)
         {
             string dsType = string.Empty;
