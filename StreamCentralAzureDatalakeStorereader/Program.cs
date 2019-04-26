@@ -121,7 +121,7 @@ namespace AzureDatalakeStorereader
                     
                     Logging.WriteToLog(LoggerEnum.INFO, "sourcename  : " + sourcename, filename);
                     Logging.WriteToLog(LoggerEnum.INFO, "sourceid  : " + sourceid, filename);
-                    Console.WriteLine("DATASOURCE: sourceid: " + sourceid + "sourcename: " + sourcename + " started");
+                    Console.WriteLine("DATASOURCE: sourceid: " + sourceid + " sourcename: " + sourcename + " started");
 
                     try
                     {
