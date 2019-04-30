@@ -4,9 +4,6 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Configuration;
-using Microsoft.Azure.DataLake.Store;
-using Microsoft.Azure.Management.DataLake.Store;
-using Microsoft.Rest.Azure.Authentication;
 using Npgsql;
 using Newtonsoft.Json.Linq;
 using System.Data;
@@ -15,6 +12,9 @@ using Microsoft.Azure.Management.DataFactory;
 using Microsoft.Rest;
 using Microsoft.IdentityModel.Clients.ActiveDirectory;
 using Microsoft.Azure.Management.DataFactory.Models;
+using Microsoft.Azure.DataLake.Store;
+using Microsoft.Azure.Management.DataLake.Store;
+using Microsoft.Rest.Azure.Authentication;
 
 namespace AzureDatalakeStorereader
 {
@@ -47,6 +47,10 @@ namespace AzureDatalakeStorereader
                 else if (argList != null && argList.Length > 0 && argList.First().Contains("2"))
                 {
                     RerunPipeline(creds);
+                }
+                else if (argList != null && argList.Length > 0 && argList.First().Contains("3"))
+                {
+                    ADLSGen1FileOperations.CreateFile("/Samples/Output/Ex");
                 }
                 else
                 {
