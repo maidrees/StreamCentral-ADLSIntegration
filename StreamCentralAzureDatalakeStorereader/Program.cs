@@ -23,8 +23,8 @@ namespace AzureDatalakeStorereader
         private static string[] argList;
         public static AdlsClient client;
         public static NpgsqlConnection conn = null;
-
-        public static string filenamemain = "LogFileInput";
+        public static string[] iterations = new string[500];
+        public static int IterationsCount = 0;
 
         static void Main(string[] args)
         {
@@ -77,10 +77,6 @@ namespace AzureDatalakeStorereader
             var activityRun = client.ActivityRuns.QueryByPipelineRun
             (ConfigurationManager.AppSettings["resourceGroupName"], "CGS-Data-Factory1", runResponse.RunId, runFilter);
             
-            
-            
-            
-            
             //var context = new AuthenticationContext(ConfigurationManager.AppSettings["adlsName"] + ".azuredatalakestore.net"  +ConfigurationManager.AppSettings["ActiveDirectoryTenantId"]);
             //ClientCredential cc = new ClientCredential(ConfigurationManager.AppSettings["ApplicationId"], ConfigurationManager.AppSettings["Password"]);
             //AuthenticationResult result = context.AcquireTokenAsync("https://management.azure.com/", cc).Result;
@@ -95,54 +91,37 @@ namespace AzureDatalakeStorereader
 
         public static void GetDatalakedata(AdlsClient client)
         {
-            Logging.WriteToLog(LoggerEnum.INFO, "Get Datalakedata Entry: ", filenamemain);
+            Logging.WriteToLog(LoggerEnum.INFO, "Get Datalakedata Entry: ", Constants.LogFileInputPrefix);
 
             try
             {
+                
                 JObject jOpAllSourcesData = (JObject.Parse(DataSourceDetails.ExecuteDataSourceDetails()));
-
-                DataSourceDetails.Sources = DataSourceDetails.LoadDataSourceObjects(jOpAllSourcesData);
+                
+                DataSourceDetails.LoadDataSourceObjects(jOpAllSourcesData);
 
                 Console.WriteLine("Number of data sources: " + DataSourceDetails.Sources.Count);
 
                 foreach (JObject JSourceData in DataSourceDetails.Sources)
                 {
                     IEnumerable<DirectoryEntry> v = null;
-                    JObject joutputmain = new JObject();
-                    JObject engines = (JObject)JSourceData["engines"];
-                    JArray pull = null;
-                    string id = "0";
-                    string sourcename = JSourceData["SPOKENAME"].ToString();
-                    string sourceid = JSourceData["SOURCEID"].ToString();
-                    string filename = "logfileoutput" + sourcename + "_" + sourceid;
-                    string sqlcount = string.Empty;
-                    string createddate = string.Empty;
-                    JObject jsonOpattr = new JObject();
                     
-                    Logging.WriteToLog(LoggerEnum.INFO, "sourcename  : " + sourcename, filename);
-                    Logging.WriteToLog(LoggerEnum.INFO, "sourceid  : " + sourceid, filename);
-                    Console.WriteLine("DATASOURCE: sourceid: " + sourceid + " sourcename: " + sourcename + " started");
+                    LoadDataSourceDataFromJson(JSourceData);
 
+                    string filename = Constants.LogFileOutputPrefix + DataSource.DataSourceName + "_" + DataSource.DataSourceID;
+                    string sqlcount = string.Empty;
+                   
+                    JObject jsonOpattr = new JObject();
+                    JObject joutputmain = new JObject();
+                    
+                    Logging.WriteToLog(LoggerEnum.INFO, "sourcename  : " + DataSource.DataSourceName, filename);
+                    Logging.WriteToLog(LoggerEnum.INFO, "sourceid  : " + DataSource.DataSourceID, filename);
+
+                    Console.WriteLine("DATASOURCE: sourceid: " + DataSource.DataSourceID + " sourcename: " + DataSource.DataSourceName + " started");
+                                       
                     try
                     {
-                        pull = (JArray)engines["f1"];
-                        createddate = pull[0]["createddate"].ToString();
-                        createddate = createddate.Substring(0, 10);
-                        id = pull[0]["id"].ToString();
-                    }
-                    catch (Exception ex)
-                    {
-                        createddate = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
-                    }
-
-                    Logging.WriteToLog(LoggerEnum.INFO, "createddate  : " + createddate, filename);
-                    Logging.WriteToLog(LoggerEnum.INFO, "id  : " + id, filename);
-
-                    DateTime dtcreateddate = Convert.ToDateTime(createddate);
-
-                    try
-                    {
-                        sqlcount = GetDatamartCount(sourcename, dtcreateddate, filename);
+                        sqlcount = GetDatamartCount(DataSource.DataSourceName, DataSource.DSLastIteratedDate, filename);
                     }
                     catch (Exception exdb)
                     {
@@ -151,32 +130,31 @@ namespace AzureDatalakeStorereader
 
                     jsonOpattr["TransType"] = "updatedatalakestore";
                     jsonOpattr["sqlcount"] = sqlcount;
-                    jsonOpattr["SOURCEID"] = sourceid;
-                    jsonOpattr["id"] = id;
-                    
-                    string containerpath = GetdataSourceType(sourcename);
-                    
-                    string[] adlsFilePaths = FormatAdlsFilePaths(containerpath,sourcename);
+                    jsonOpattr["SOURCEID"] = DataSource.DataSourceID;
+                    jsonOpattr["id"] = DataSource.EngineInstanceId;
+                    jsonOpattr["adlaprovid"] = DataSource.ADLAProvId;
+                    jsonOpattr["isfileupdated"] = 1;
 
-                    foreach (string path in adlsFilePaths)
+                    foreach (string path in FormatAdlsFilePaths())
                     {
+                        bool IsPathFound = false;
                         try
                         {
                             v = client.EnumerateDirectory(path);
 
                             Logging.WriteToLog(LoggerEnum.INFO, "ADLS path: " + path, filename);
-
+                           
                             Console.WriteLine(path);
 
                             if (v != null)
-                            {
+                            {                               
                                 var v1 = (from cust in v
-                                         where cust.LastModifiedTime >= dtcreateddate
-                                         orderby cust.LastModifiedTime descending
-                                         select cust).Take(1).ElementAt(0);
+                                            //where cust.LastModifiedTime >= DataSource.DSLastIteratedDate
+                                            orderby cust.LastModifiedTime descending
+                                            select cust).Take(1).ElementAt(0);
 
                                 Logging.WriteToLog(LoggerEnum.INFO, "lambda query", filename);
-                                
+
                                 if (v1 != null && v1.Length > 1)
                                 {
                                     string rep = v1.Name.Replace("Data_", "");
@@ -187,6 +165,11 @@ namespace AzureDatalakeStorereader
                                     Logging.WriteToLog(LoggerEnum.INFO, message: "v1.Length" + v1.Length, fileName: filename);
                                     Logging.WriteToLog(LoggerEnum.INFO, message: "v1.Name" + v1.Name, fileName: filename);
 
+                                    if (v1.LastModifiedTime < DataSource.DSLastIteratedDate)
+                                    {   
+                                        jsonOpattr["isfileupdated"] = 0;
+                                    }
+                                    
                                     jsonOpattr["path"] = rep;
                                     jsonOpattr["size"] = v1.Length;
                                     jsonOpattr["filename"] = v1.FullName;
@@ -206,56 +189,121 @@ namespace AzureDatalakeStorereader
 
                                 Console.WriteLine("joutput :" + joutputmain);
 
-                                UpdateADLSFileMoficationDateStatus(joutputmain.ToString(), filename);
+                                UpdateStatusInMasterDB(joutputmain.ToString(), filename);
 
+                                iterations[IterationsCount] = "file path found and processed";
+                                IterationsCount++;
+
+                                Console.WriteLine("File Path found and updated: ");
+                                
                             }
                         }
-                        catch (AdlsException ex)
+                        catch (AdlsException adlsEx)
                         {
                             Logging.WriteToLog(LoggerEnum.INFO, "Exception occured in finding the path: " + path, filename);
                         }
-                    }   
-                    
+                        catch (IndexOutOfRangeException indexEx)
+                        {
+                            Logging.WriteToLog(LoggerEnum.ERROR, message: " File not updated: ", fileName: filename);
+                        }
+                    }
+                }
 
-                }                          
-                              
-                Console.WriteLine("DATASOURCE ITERATIONS COMPLETED");
-               
+                Console.WriteLine("Total counts updated:" + IterationsCount);
+
+                Console.WriteLine("DATASOURCE ITERATIONS COMPLETED...");
+                
                 Console.Read();
             }
-
             catch (Exception ex1)
             {
-                Console.WriteLine("MAIN :" + ex1.Message);
+                Console.WriteLine("Exception in Main Method :" + ex1.Message);
+
                 Logging.WriteToLog(LoggerEnum.ERROR, ex1.Message, "MainException");
+
                 Console.Read();
             }
         }
 
-        private static string[] FormatAdlsFilePaths(string containerpath, string sourcename)
+        private static void LoadDataSourceDataFromJson(JObject jSourceData)
         {
-            if (sourcename.Contains("DSAstaCloudProjectdboProject")) { }
-            string[] paths = new string[3];
-            paths[0] = "/" + ConfigurationManager.AppSettings["folderPath"] + "/DL-" + containerpath + "/" + sourcename + "/" + sourcename + "_Transactional";
-            paths[1] = "/" + ConfigurationManager.AppSettings["folderPath"] + "/DL-" + containerpath + "/" + sourcename + "/1Day_Transactional_" + sourcename;
-            paths[2] = "/" + ConfigurationManager.AppSettings["folderPath"] + "/DL-" + containerpath + "/Fact_" + sourcename + "/1Day_Transactional_Fact_" + sourcename;
+            try
+            {
+                DataSource.DataSourceID = (string)jSourceData[Constants.JsonDSDetailsDataSourceID];
+                DataSource.DataSourceName = (string)jSourceData[Constants.JsonDSDetailsDataSourceName];
+                DataSource.ADLAType = (string)jSourceData[Constants.JsonDSDetailsADLAType];
+                DataSource.ADLAProvisioningName = (string)jSourceData[Constants.JsonDSDetailsADLAName];
+                DataSource.FolderPath = (string)jSourceData[Constants.JsonDSDetailsFolderPath];
+                DataSource.DSCreatedDate = (DateTime)jSourceData[Constants.JsonDSDetailsDSCreatedDate];
 
+                if(jSourceData[Constants.JsonDSDetailsDSLastIteratedDate] != null)
+                {
+                    DataSource.DSLastIteratedDate = (DateTime)jSourceData[Constants.JsonDSDetailsDSLastIteratedDate];
+                }
+
+                if (jSourceData[Constants.JsonDSDetailsADLACreatedDate] != null)
+                {
+                    DataSource.ADLAProvCreatedDate = (DateTime)jSourceData[Constants.JsonDSDetailsADLACreatedDate];
+                }
+
+                try
+                {
+                    DataSource.ADLAProvModifiedDate = (DateTime)jSourceData[Constants.JsonDSDetailsADLAModifiedDate];
+                }
+                catch(Exception ex)
+                {
+                    DataSource.ADLAProvModifiedDate = DateTime.Now.AddYears(18);
+                }
+                DataSource.ContainerPath = (string)jSourceData[Constants.JsonDSDetailsContainerPath];
+                DataSource.Frequency = (string)jSourceData[Constants.JsonDSDetailsFrequency];
+                DataSource.FrequencyUOM = (string)jSourceData[Constants.JsonDSDetailsFrequencyUOM];
+                DataSource.EngineInstanceId = (string)jSourceData[Constants.JsonDSDetailsEngineInstanceID];
+                DataSource.ADLAProvId = (string)jSourceData[Constants.JsonDSDetailsADLAProvID];
+            }
+            catch(Exception ex)
+            {
+                Console.WriteLine("Exception occured in loading the data source attributes:" + ex);
+            }
+        }
+
+        private static string[] FormatAdlsFilePaths()
+        {
+            string[] paths = new string[3];
+            try
+            {
+                
+
+                DataSource.ContainerPath = GetdataSourceType(DataSource.DataSourceName);
+
+                paths[0] = "/" + ConfigurationManager.AppSettings["folderPath"] + "/DL-" + DataSource.ContainerPath + "/" + DataSource.DataSourceName + "/" + DataSource.DataSourceName + "_" + DataSource.ADLAType;
+                paths[1] = "/" + ConfigurationManager.AppSettings["folderPath"] + "/DL-" + DataSource.ContainerPath + "/" + DataSource.DataSourceName + "/" + DataSource.Frequency + DataSource.FrequencyUOM + "_" + DataSource.ADLAType + "_" + DataSource.DataSourceName;
+                paths[2] = "/" + ConfigurationManager.AppSettings["folderPath"] + "/DL-" + DataSource.ContainerPath + "/Fact_" + DataSource.DataSourceName + "/" + DataSource.Frequency + DataSource.FrequencyUOM + "_" + DataSource.ADLAType + "_" + DataSource.DataSourceName;
+
+                
+            }
+            catch(Exception ex)
+            {
+                Logging.WriteToLog(LoggerEnum.ERROR, String.Format("Exception occured in building the paths: {0} , {1}", DataSource.DataSourceName, DataSource.ContainerPath), "inputfile");
+            }
             return paths;
         }
        
 
-        public static void UpdateADLSFileMoficationDateStatus(string input,string filename)
+        public static void UpdateStatusInMasterDB(string input,string filename)
         {
             try
             {
                 Logging.WriteToLog(LoggerEnum.INFO, "UpdateADLSFileMoficationDateStatus Start time : " + DateTime.Now, filename);
                 Logging.WriteToLog(LoggerEnum.INFO, input, filename);
-                string comm = "select usp_dbservgetsourcecommonurl('" + input.ToString() + "')";
+                string comm = "select usp_adla('" + input.ToString() + "')";
                 Logging.WriteToLog(LoggerEnum.INFO, comm, filename);
 
                 MasterDBUtils.MasterDBConnect();
                 object objResult1 = MasterDBUtils.GenerateSQLQueryCommand(comm).ExecuteScalar();
                 string strresult2 = objResult1.ToString();
+
+              
+                
                 Logging.WriteToLog(LoggerEnum.INFO, "OUTPUT" + strresult2, filename);
                 Logging.WriteToLog(LoggerEnum.INFO, input, filename);
                 Logging.WriteToLog(LoggerEnum.INFO, "UpdateADLSFileMoficationDateStatus End time : " + DateTime.Now, filename);
@@ -268,6 +316,68 @@ namespace AzureDatalakeStorereader
             {
                 MasterDBUtils.CloseConnections();
             }
+        }
+
+        public static void FetchandUpdateDatamartCounts()
+        {
+            Logging.WriteToLog(LoggerEnum.INFO, "Get GetDatamartCounts Entry: ", Constants.LogFileInputPrefix);
+
+            try
+            {
+                JObject jOpAllSourcesData = (JObject.Parse(DataSourceDetails.ExecuteDataSourceDetails()));
+
+                DataSourceDetails.LoadDataSourceObjects(jOpAllSourcesData);
+
+                Console.WriteLine("Number of data sources: " + DataSourceDetails.Sources.Count);
+
+
+                foreach (JObject JSourceData in DataSourceDetails.Sources.GroupBy( i => i.ElementAt(1),(key,group) => group.First()).ToArray())
+                {
+                    LoadDataSourceDataFromJson(JSourceData);
+
+                    string filename = Constants.LogFileOutputPrefix + DataSource.DataSourceName + "_" + DataSource.DataSourceID;
+                    string sqlcount = string.Empty;
+
+                    JObject jsonOpattr = new JObject();
+                    JObject joutputmain = new JObject();
+
+                    Logging.WriteToLog(LoggerEnum.INFO, "sourcename  : " + DataSource.DataSourceName, filename);
+                    Logging.WriteToLog(LoggerEnum.INFO, "sourceid  : " + DataSource.DataSourceID, filename);
+
+                    Console.WriteLine("DATASOURCE: sourceid: " + DataSource.DataSourceID + " sourcename: " + DataSource.DataSourceName + " started");
+
+                    try
+                    {
+                        sqlcount = GetDatamartCount(DataSource.DataSourceName, DataSource.DSLastIteratedDate, filename);
+                    }
+                    catch (Exception exdb)
+                    {
+                        Logging.WriteToLog(LoggerEnum.ERROR, "Exception occured for fetching the source records count in DM: " + exdb.Message, filename);
+                    }
+
+                    jsonOpattr["TransType"] = "updatedmcounts";
+                    jsonOpattr["sqlcount"] = sqlcount;
+                    jsonOpattr["SOURCEID"] = DataSource.DataSourceID;
+                    jsonOpattr["id"] = DataSource.EngineInstanceId;
+                    jsonOpattr["adlaprovid"] = DataSource.ADLAProvId;
+                    joutputmain["INPUT"] = jsonOpattr;
+
+                    UpdateStatusInMasterDB(joutputmain.ToString(), filename);                    
+                }
+
+                Console.WriteLine("DATASOURCE ITERATIONS COMPLETED");
+
+                Console.Read();
+            }
+
+            catch (Exception ex)
+            {
+                Console.WriteLine("Exception occured in UpdateDatamartCounts() Main procedure: " + ex.Message);
+
+                Logging.WriteToLog(LoggerEnum.ERROR, ex.Message, "MainException");
+                Console.Read();
+            }
+
         }
 
         public static string GetDatamartCount(string tableName, DateTime date,string filename)
