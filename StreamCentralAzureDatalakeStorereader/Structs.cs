@@ -74,7 +74,8 @@ namespace AzureDatalakeStorereader
         {         
             try
             {
-                DataSourceDetails.Sources = (JArray)jOpAllSourcesData["SPOKE"];               
+                DataSourceDetails.Sources = (JArray)jOpAllSourcesData["SPOKE"];      
+                
             }
             catch(Exception ex)
             {
