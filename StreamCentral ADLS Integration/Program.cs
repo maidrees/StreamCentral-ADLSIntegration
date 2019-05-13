@@ -87,11 +87,32 @@ namespace StreamCentral.ADLSIntegration
 
                 }
 
-                if(InitialParams.DeployCriteria.Equals("bulk-copy"))
-                { 
+                if(InitialParams.DeployCriteria.Equals("b-delete"))
+                {
+
+                    //Console.WriteLine("Deleting the Pipelines : Start ");
+
+                    //ADFV1Operations.DeletePipelines(Utils.GetCustomizedPipelineName(false));
+                    //ADFV1Operations.DeletePipelines(Utils.GetCustomizedPipelineName(true));
+
+                    //Console.WriteLine("Deleted Pipelines : End ");
+
+                    Console.WriteLine("Deleting the Data Sets now : Start ");
+
+
+                    ADFV1Operations.DeleteDatasets("SC_DSI_H_live", EnumDeleteSearchType.Contains);
+                  // ADFV1Operations.DeleteDatasets(Utils.GetCustomizedOutputDataSetName(true), EnumDeleteSearchType.Exact);
+
+
+                  //  ADFV1Operations.DeleteDatasets(Utils.GetCustomizedInputDataSetName(false), EnumDeleteSearchType.Exact);
+                  //  ADFV1Operations.DeleteDatasets(Utils.GetCustomizedOutputDataSetName(false), EnumDeleteSearchType.Exact);
+
+
+                    Console.WriteLine("Deleted Data Seta : End ");
+
 
                 }
-                
+
                 Console.WriteLine("Completed the process in Microsoft Windows Azure");
 
                 Console.ReadLine();                
@@ -150,7 +171,7 @@ namespace StreamCentral.ADLSIntegration
                     {
                         arguments = arg.Split(':');
 
-                       SetCommandLinePropertyValues(arguments[0], arguments[1]);                        
+                       SetCommandLinePropertyValues(arguments[0].Trim(), arguments[1].Trim());                        
                     }                  
                 }
                 catch(Exception ex)

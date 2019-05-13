@@ -6,8 +6,8 @@
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProjectGuid>{B673D003-0668-4748-A442-DC7AECD3E1A7}</ProjectGuid>
     <OutputType>Exe</OutputType>
-    <RootNamespace>AzureDatalakeStorereader</RootNamespace>
-    <AssemblyName>AzureDatalakeStorereader</AssemblyName>
+    <RootNamespace>StreamCentral.ADLSConnector</RootNamespace>
+    <AssemblyName>StreamCentral ADLS Connector</AssemblyName>
     <TargetFrameworkVersion>v4.6.1</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>

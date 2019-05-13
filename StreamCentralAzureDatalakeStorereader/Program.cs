@@ -50,7 +50,10 @@ namespace AzureDatalakeStorereader
                 }
                 else if (argList != null && argList.Length > 0 && argList.First().Contains("3"))
                 {
-                    ADLSGen1FileOperations.CreateFile("/Samples/Output/Ex");
+                    for (int i = 0; i <= 10000; i++)
+                    {
+                        ADLSGen1FileOperations.AppendToFile("/Samples/Output/Ex", i);
+                    }
                 }
                 else
                 {
@@ -275,14 +278,15 @@ namespace AzureDatalakeStorereader
             string[] paths = new string[3];
             try
             {
-                
-
                 DataSource.ContainerPath = GetdataSourceType(DataSource.DataSourceName);
 
                 paths[0] = "/" + ConfigurationManager.AppSettings["folderPath"] + "/DL-" + DataSource.ContainerPath + "/" + DataSource.DataSourceName + "/" + DataSource.DataSourceName + "_" + DataSource.ADLAType;
                 paths[1] = "/" + ConfigurationManager.AppSettings["folderPath"] + "/DL-" + DataSource.ContainerPath + "/" + DataSource.DataSourceName + "/" + DataSource.Frequency + DataSource.FrequencyUOM + "_" + DataSource.ADLAType + "_" + DataSource.DataSourceName;
                 paths[2] = "/" + ConfigurationManager.AppSettings["folderPath"] + "/DL-" + DataSource.ContainerPath + "/Fact_" + DataSource.DataSourceName + "/" + DataSource.Frequency + DataSource.FrequencyUOM + "_" + DataSource.ADLAType + "_" + DataSource.DataSourceName;
 
+                Console.WriteLine(paths[0]);
+                Console.WriteLine(paths[1]);
+                Console.WriteLine(paths[2]);
                 
             }
             catch(Exception ex)

@@ -6,8 +6,8 @@
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProjectGuid>{287CEC1B-BB9D-4A45-94E4-0249D0557C5D}</ProjectGuid>
     <OutputType>Exe</OutputType>
-    <RootNamespace>StreamcentralUSQLReader</RootNamespace>
-    <AssemblyName>StreamcentralUSQLReader</AssemblyName>
+    <RootNamespace>Streamcentral.USQLScriptGenertor</RootNamespace>
+    <AssemblyName>StreamCentral USQL Script Generator</AssemblyName>
     <TargetFrameworkVersion>v4.6.1</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>

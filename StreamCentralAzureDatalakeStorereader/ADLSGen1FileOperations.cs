@@ -54,8 +54,7 @@ namespace AzureDatalakeStorereader
                 }
             }
         }
-
-
+    
         public static void DeleteFiles(string fileName)
         {
             try
@@ -100,12 +99,12 @@ namespace AzureDatalakeStorereader
             }
         }
 
-        public static void AppendToFile(string fileName)
+        public static void AppendToFile(string fileName,int i)
         {
             // Append to existing file
             using (var stream = client.GetAppendStream(fileName))
             {
-                byte[] textByteArray = Encoding.UTF8.GetBytes("This is the added line.\r\n");
+                byte[] textByteArray = Encoding.UTF8.GetBytes("This is the added line. " + i + "\r\n");
                 stream.Write(textByteArray, 0, textByteArray.Length);
             }
         }
