@@ -5,9 +5,9 @@ VisualStudioVersion = 15.0.27428.2037
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StreamCentral ADLS Integration", "StreamCentral ADLS Integration\StreamCentral ADLS Integration.csproj", "{93AF5BAB-5967-439C-81B0-2E82172133FB}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StreamCentralUSQLReader", "StreamcentralUSQLReader\StreamCentralUSQLReader.csproj", "{287CEC1B-BB9D-4A45-94E4-0249D0557C5D}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StreamCentral USQL Script Generator", "StreamCentral USQL Script Generator\StreamCentral USQL Script Generator.csproj", "{287CEC1B-BB9D-4A45-94E4-0249D0557C5D}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AzureDatalakeStorereader", "StreamCentralAzureDatalakeStorereader\AzureDatalakeStorereader.csproj", "{B673D003-0668-4748-A442-DC7AECD3E1A7}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StreamCentral ADLS File Connector", "StreamCentral ADLS File Connector\StreamCentral ADLS File Connector.csproj", "{B673D003-0668-4748-A442-DC7AECD3E1A7}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
