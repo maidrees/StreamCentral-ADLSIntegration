@@ -275,18 +275,18 @@ namespace AzureDatalakeStorereader
 
         private static string[] FormatAdlsFilePaths()
         {
-            string[] paths = new string[3];
+            string[] paths = new string[2];
             try
             {
                 DataSource.ContainerPath = GetdataSourceType(DataSource.DataSourceName);
 
                 paths[0] = "/" + ConfigurationManager.AppSettings["folderPath"] + "/DL-" + DataSource.ContainerPath + "/" + DataSource.DataSourceName + "/" + DataSource.DataSourceName + "_" + DataSource.ADLAType;
                 paths[1] = "/" + ConfigurationManager.AppSettings["folderPath"] + "/DL-" + DataSource.ContainerPath + "/" + DataSource.DataSourceName + "/" + DataSource.Frequency + DataSource.FrequencyUOM + "_" + DataSource.ADLAType + "_" + DataSource.DataSourceName;
-                paths[2] = "/" + ConfigurationManager.AppSettings["folderPath"] + "/DL-" + DataSource.ContainerPath + "/Fact_" + DataSource.DataSourceName + "/" + DataSource.Frequency + DataSource.FrequencyUOM + "_" + DataSource.ADLAType + "_" + DataSource.DataSourceName;
+               // paths[2] = "/" + ConfigurationManager.AppSettings["folderPath"] + "/DL-" + DataSource.ContainerPath + "/Fact_" + DataSource.DataSourceName + "/" + DataSource.Frequency + DataSource.FrequencyUOM + "_" + DataSource.ADLAType + "_" + DataSource.DataSourceName;
 
-                Console.WriteLine(paths[0]);
-                Console.WriteLine(paths[1]);
-                Console.WriteLine(paths[2]);
+                //Console.WriteLine(paths[0]);
+               // Console.WriteLine(paths[1]);
+                //Console.WriteLine(paths[2]);
                 
             }
             catch(Exception ex)
