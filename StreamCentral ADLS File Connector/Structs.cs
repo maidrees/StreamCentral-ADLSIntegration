@@ -53,8 +53,9 @@ namespace AzureDatalakeStorereader
             try
             {
                 string query = "select usp_adla('" + DataSourceDetails.InputJson + "')";
-
+             
                 object objResult = MasterDBUtils.GenerateSQLQueryCommand(query).ExecuteScalar();
+           
                 opResult = objResult.ToString();
             }
             catch(Npgsql.NpgsqlException ex)

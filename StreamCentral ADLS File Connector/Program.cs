@@ -35,9 +35,10 @@ namespace AzureDatalakeStorereader
             var creds = ApplicationTokenProvider.LoginSilentAsync(tenantId, applicationId, secretKey).Result;
 
             client = AdlsClient.CreateClient(adlsAccountName, creds);
-
+      
             try
             {
+               
                 argList = args;
 
                 if (argList != null && argList.Length > 0 && argList.First().Contains("1"))
@@ -57,13 +58,15 @@ namespace AzureDatalakeStorereader
                 }
                 else
                 {
+                    Console.WriteLine("calling getdatalakedata");
                     GetDatalakedata(client);
+                  
                 }
             }
             catch (Exception ex)
             {
                 Console.WriteLine("Unable to read any input from command line. Executing statements after that now:" + ex.Message);
-
+               
             }
             finally
             {
@@ -99,7 +102,7 @@ namespace AzureDatalakeStorereader
         public static void GetDatalakedata(AdlsClient client)
         {
             Logging.WriteToLog(LoggerEnum.INFO, "Get Datalakedata Entry: ", Constants.LogFileInputPrefix);
-
+           
             try
             {
                 
@@ -108,111 +111,143 @@ namespace AzureDatalakeStorereader
                 DataSourceDetails.LoadDataSourceObjects(jOpAllSourcesData);
 
                 Console.WriteLine("Number of data sources: " + DataSourceDetails.Sources.Count);
-
+                
                 foreach (JObject JSourceData in DataSourceDetails.Sources)
                 {
-                    IEnumerable<DirectoryEntry> v = null;
+                    bool isupdated = false;
+                    JObject joutputmain = null;
+                    JObject jsonOpattr = null;
                     
-                    LoadDataSourceDataFromJson(JSourceData);
-
-                    string filename = Constants.LogFileOutputPrefix + DataSource.DataSourceName + "_" + DataSource.DataSourceID;
-                    string sqlcount = string.Empty;
-                   
-                    JObject jsonOpattr = new JObject();
-                    JObject joutputmain = new JObject();
-                    
-                    Logging.WriteToLog(LoggerEnum.INFO, "sourcename  : " + DataSource.DataSourceName, filename);
-                    Logging.WriteToLog(LoggerEnum.INFO, "sourceid  : " + DataSource.DataSourceID, filename);
-
-                    Console.WriteLine("DATASOURCE: sourceid: " + DataSource.DataSourceID + " sourcename: " + DataSource.DataSourceName + " started");
-                                       
+                    string filename = string.Empty;
                     try
                     {
-                        sqlcount = GetDatamartCount(DataSource.DataSourceName, DataSource.DSLastIteratedDate, filename);
-                    }
-                    catch (Exception exdb)
-                    {
-                        Logging.WriteToLog(LoggerEnum.ERROR, "Exception occured for fetching the source records count in DM: " + exdb.Message, filename);
-                    }
 
-                    jsonOpattr["TransType"] = "updatedatalakestore";
-                    jsonOpattr["sqlcount"] = sqlcount;
-                    jsonOpattr["SOURCEID"] = DataSource.DataSourceID;
-                    jsonOpattr["id"] = DataSource.EngineInstanceId;
-                    jsonOpattr["adlaprovid"] = DataSource.ADLAProvId;
-                    jsonOpattr["isfileupdated"] = 1;
+                        IEnumerable<DirectoryEntry> v = null;
+                       
+                        LoadDataSourceDataFromJson(JSourceData);
+                       
+                        
+                        filename = Constants.LogFileOutputPrefix + DataSource.DataSourceName + "_" + DataSource.DataSourceID;
+                        string sqlcount = string.Empty;
 
-                    foreach (string path in FormatAdlsFilePaths())
-                    {
-                        bool IsPathFound = false;
+                         jsonOpattr = new JObject();
+                         joutputmain = new JObject();
+
+                        Logging.WriteToLog(LoggerEnum.INFO, "sourcename  : " + DataSource.DataSourceName, filename);
+                        Logging.WriteToLog(LoggerEnum.INFO, "sourceid  : " + DataSource.DataSourceID, filename);
+
+                        Console.WriteLine("DATASOURCE: sourceid: " + DataSource.DataSourceID + " sourcename: " + DataSource.DataSourceName + " started");
+
                         try
                         {
-                            v = client.EnumerateDirectory(path);
+                            sqlcount = GetDatamartCount(DataSource.DataSourceName, DataSource.DSLastIteratedDate, filename);
+                        }
+                        catch (Exception exdb)
+                        {
+                            Logging.WriteToLog(LoggerEnum.ERROR, "Exception occured for fetching the source records count in DM: " + exdb.Message, filename);
+                        }
 
-                            Logging.WriteToLog(LoggerEnum.INFO, "ADLS path: " + path, filename);
-                           
-                            Console.WriteLine(path);
+                        jsonOpattr["TransType"] = "updatedatalakestore";
+                        jsonOpattr["sqlcount"] = sqlcount;
+                        jsonOpattr["SOURCEID"] = DataSource.DataSourceID;
+                        jsonOpattr["id"] = DataSource.EngineInstanceId;
+                        jsonOpattr["adlaprovid"] = DataSource.ADLAProvId;
+                        jsonOpattr["isfileupdated"] = 1;
 
-                            if (v != null)
-                            {                               
-                                var v1 = (from cust in v
-                                            //where cust.LastModifiedTime >= DataSource.DSLastIteratedDate
-                                            orderby cust.LastModifiedTime descending
-                                            select cust).Take(1).ElementAt(0);
+                        foreach (string path in FormatAdlsFilePaths())
+                        {
+                            bool IsPathFound = false;
+                            try
+                            {
+                                v = client.EnumerateDirectory(path);
 
-                                Logging.WriteToLog(LoggerEnum.INFO, "lambda query", filename);
+                                Logging.WriteToLog(LoggerEnum.INFO, "ADLS path: " + path, filename);
 
-                                if (v1 != null && v1.Length > 1)
+                                Console.WriteLine(path);
+
+                                if (v != null)
                                 {
-                                    string rep = v1.Name.Replace("Data_", "");
+                                    var v1 = (from cust in v
+                                                  //where cust.LastModifiedTime >= DataSource.DSLastIteratedDate
+                                              orderby cust.LastModifiedTime descending
+                                              select cust).Take(1).ElementAt(0);
 
-                                    Console.WriteLine("Success");
-                                    Console.WriteLine("LAST MODIFIED:{0},Length:{1},Name:{2}", v1.LastModifiedTime, v1.Length, v1.Name);
-                                    Logging.WriteToLog(LoggerEnum.INFO, "v1.LastModifiedTime" + v1.LastModifiedTime, filename);
-                                    Logging.WriteToLog(LoggerEnum.INFO, message: "v1.Length" + v1.Length, fileName: filename);
-                                    Logging.WriteToLog(LoggerEnum.INFO, message: "v1.Name" + v1.Name, fileName: filename);
+                                    Logging.WriteToLog(LoggerEnum.INFO, "lambda query", filename);
 
-                                    if (v1.LastModifiedTime < DataSource.DSLastIteratedDate)
-                                    {   
-                                        jsonOpattr["isfileupdated"] = 0;
-                                    }
-                                    
-                                    jsonOpattr["path"] = rep;
-                                    jsonOpattr["size"] = v1.Length;
-                                    jsonOpattr["filename"] = v1.FullName;
-                                    jsonOpattr["lastmodifieddate"] = v1.LastModifiedTime;
-
-                                    if (jsonOpattr["lastmodifieddate"] != null)
+                                    if (v1 != null && v1.Length > 1)
                                     {
+                                        string rep = v1.Name.Replace("Data_", "");
+
+                                        Console.WriteLine("Success");
+                                        Console.WriteLine("LAST MODIFIED:{0},Length:{1},Name:{2}", v1.LastModifiedTime, v1.Length, v1.Name);
+                                        Logging.WriteToLog(LoggerEnum.INFO, "v1.LastModifiedTime" + v1.LastModifiedTime, filename);
+                                        Logging.WriteToLog(LoggerEnum.INFO, message: "v1.Length" + v1.Length, fileName: filename);
+                                        Logging.WriteToLog(LoggerEnum.INFO, message: "v1.Name" + v1.Name, fileName: filename);
+
+                                        if (v1.LastModifiedTime < DataSource.DSLastIteratedDate)
+                                        {
+                                            jsonOpattr["isfileupdated"] = 0;
+                                        }
+
+                                        jsonOpattr["path"] = rep;
+                                        jsonOpattr["size"] = v1.Length;
+                                        jsonOpattr["filename"] = v1.FullName;
+                                        jsonOpattr["lastmodifieddate"] = v1.LastModifiedTime;
+
+                                        if (jsonOpattr["lastmodifieddate"] != null)
+                                        {
+                                            joutputmain["INPUT"] = jsonOpattr;
+                                        }
+                                    }
+                                    else
+                                    {
+                                        Console.WriteLine("file size is less");
+
                                         joutputmain["INPUT"] = jsonOpattr;
                                     }
+
+                                    Console.WriteLine("joutput :" + joutputmain);
+                                    if (!isupdated)
+                                    {
+                                        UpdateStatusInMasterDB(joutputmain.ToString(), filename);
+                                        isupdated = true;
+                                    }
+
+
+
+                                    iterations[IterationsCount] = "file path found and processed";
+                                    IterationsCount++;
+
+                                    Console.WriteLine("File Path found and updated: ");
+
                                 }
-                                else
-                                {
-                                    Console.WriteLine("file size is less");
+                            }
+                            catch (AdlsException adlsEx)
 
-                                    joutputmain["INPUT"] = jsonOpattr;
-                                }
 
-                                Console.WriteLine("joutput :" + joutputmain);
-
-                                UpdateStatusInMasterDB(joutputmain.ToString(), filename);
-
-                                iterations[IterationsCount] = "file path found and processed";
-                                IterationsCount++;
-
-                                Console.WriteLine("File Path found and updated: ");
-                                
+                            {
+                               
+                                Logging.WriteToLog(LoggerEnum.INFO, "Exception occured in finding the path: " + path, filename);
+                            }
+                            catch (IndexOutOfRangeException indexEx)
+                            {
+                                Logging.WriteToLog(LoggerEnum.ERROR, message: " File not updated: ", fileName: filename);
                             }
                         }
-                        catch (AdlsException adlsEx)
+                    }
+                    catch(Exception)
+                    {
+
+                    }
+                    finally
+                    {
+                        if (!isupdated)
                         {
-                            Logging.WriteToLog(LoggerEnum.INFO, "Exception occured in finding the path: " + path, filename);
+                            joutputmain["INPUT"] = jsonOpattr;
+                            UpdateStatusInMasterDB(joutputmain.ToString(), filename);
                         }
-                        catch (IndexOutOfRangeException indexEx)
-                        {
-                            Logging.WriteToLog(LoggerEnum.ERROR, message: " File not updated: ", fileName: filename);
-                        }
+                        joutputmain = null;
+                            jsonOpattr = null;
                     }
                 }
 
@@ -220,7 +255,7 @@ namespace AzureDatalakeStorereader
 
                 Console.WriteLine("DATASOURCE ITERATIONS COMPLETED...");
                 
-                Console.Read();
+             
             }
             catch (Exception ex1)
             {
@@ -228,7 +263,6 @@ namespace AzureDatalakeStorereader
 
                 Logging.WriteToLog(LoggerEnum.ERROR, ex1.Message, "MainException");
 
-                Console.Read();
             }
         }
 
@@ -309,16 +343,17 @@ namespace AzureDatalakeStorereader
                 MasterDBUtils.MasterDBConnect();
                 object objResult1 = MasterDBUtils.GenerateSQLQueryCommand(comm).ExecuteScalar();
                 string strresult2 = objResult1.ToString();
+                Logging.WriteToLog(LoggerEnum.INFO, "UpdateADLSFileMoficationDateStatus End time : " + DateTime.Now, filename);
 
-              
-                
+
                 Logging.WriteToLog(LoggerEnum.INFO, "OUTPUT" + strresult2, filename);
                 Logging.WriteToLog(LoggerEnum.INFO, input, filename);
-                Logging.WriteToLog(LoggerEnum.INFO, "UpdateADLSFileMoficationDateStatus End time : " + DateTime.Now, filename);
+                Logging.WriteToLog(LoggerEnum.INFO, "UpdateADLSFileMoficationDateStatus End time last : " + DateTime.Now, filename);
             }
             catch (Exception exup)
             {
                 MasterDBUtils.CloseConnections();
+                Console.WriteLine("UpdateStatusInMasterDB  Exception" + exup.Message);
             }
             finally
             {

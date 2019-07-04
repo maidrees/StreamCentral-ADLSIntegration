@@ -1,19 +1,19 @@
-﻿using System;
+﻿using Microsoft.Azure.Management.DataFactory;
+using Microsoft.Azure.Management.DataFactory.Models;
+using Microsoft.IdentityModel.Clients.ActiveDirectory;
+using Microsoft.Rest;
+using Newtonsoft.Json.Linq;
+using Npgsql;
+using System;
 using System.Collections.Generic;
+using System.Configuration;
+using System.Data;
+using System.Data;
+using System.Data.SqlClient;
+using System.Data.SqlClient;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using System.Data;
-using System.Data.SqlClient;
-using System.Configuration;
-using Npgsql;
-using Newtonsoft.Json.Linq;
-using System.Data;
-using System.Data.SqlClient;
-using Microsoft.Azure.Management.DataFactory;
-using Microsoft.Rest;
-using Microsoft.IdentityModel.Clients.ActiveDirectory;
-using Microsoft.Azure.Management.DataFactory.Models;
 
 namespace AzureDatalakeStorereader
 {
@@ -35,7 +35,9 @@ namespace AzureDatalakeStorereader
         {
             SqlCommand cmd = new SqlCommand(ConfigurationManager.AppSettings[spName], connection)
             {
-                CommandType = CommandType.StoredProcedure
+                CommandType = CommandType.StoredProcedure,
+                CommandTimeout = 0
+
             };
 
             cmd.Parameters.Add(new SqlParameter("@TableName", tableName));
@@ -46,7 +48,8 @@ namespace AzureDatalakeStorereader
         {
             SqlCommand cmd = new SqlCommand(ConfigurationManager.AppSettings[spName], connection)
             {
-                CommandType = CommandType.StoredProcedure
+                CommandType = CommandType.StoredProcedure,
+                 CommandTimeout = 0
             };
 
             cmd.Parameters.Add(new SqlParameter("@SearchText01", Param1));
@@ -74,20 +77,39 @@ namespace AzureDatalakeStorereader
 
         static MasterDBUtils()
         {
-            connection = new NpgsqlConnection(ConfigurationManager.AppSettings["MasterConnString"]);
-            connection.Open();
+            try
+            {
+                connection = new NpgsqlConnection(ConfigurationManager.AppSettings["MasterConnString"]);
+                connection.Open();
+            }
+            catch (NpgsqlException nex)
+            {
+            }
+            catch (Exception ex)
+            {
+            }
         }
       
         public static NpgsqlConnection MasterDBConnect()
         {
             try
             {
-                connection = new NpgsqlConnection(ConfigurationManager.AppSettings["MasterConnString"]);
-                connection.Open();
+                if (connection == null )
+                {
+                    connection = new NpgsqlConnection(ConfigurationManager.AppSettings["MasterConnString"]);
+                 
+                    connection.Open();
+                }
+                else if (connection != null && connection.State == ConnectionState.Closed)
+                {
+                    connection = new NpgsqlConnection(ConfigurationManager.AppSettings["MasterConnString"]);
+                    connection.Open();
+                }
+
             }
             catch(NpgsqlException ex)
             {
-                
+                Console.Write("connection MasterDBConnect"+ex.Message);
             }
             return connection;
         }
@@ -119,14 +141,33 @@ namespace AzureDatalakeStorereader
 
         public static NpgsqlCommand GenerateSQLQueryCommand(string sqlQuery)
         {
-            if (connection.State == ConnectionState.Closed)
+            try
             {
-                MasterDBUtils.MasterDBConnect();
-                connection.Open();
-            }
-            NpgsqlCommand cmd = new NpgsqlCommand(sqlQuery, connection);          
+                if (connection!=null && connection.State == ConnectionState.Closed)
+                {
+                 
+                    MasterDBUtils.MasterDBConnect();
+                    //connection.Open();
+                    
+                }
+                else
+                {
+                    
+                    MasterDBUtils.MasterDBConnect();
+                   
+                }
+                NpgsqlCommand cmd = new NpgsqlCommand(sqlQuery, connection);
+                cmd.CommandTimeout = 0;
 
-            return cmd;
+                return cmd;
+            }
+            catch(Exception ex)
+            {
+                Console.WriteLine("Ex in GenerateSQLQueryCommand " + ex);
+                return null;
+               
+            }
+          
         }
 
         public static void CloseConnections()
