@@ -35,10 +35,10 @@ namespace AzureDatalakeStorereader
             var creds = ApplicationTokenProvider.LoginSilentAsync(tenantId, applicationId, secretKey).Result;
 
             client = AdlsClient.CreateClient(adlsAccountName, creds);
-      
+
             try
             {
-               
+
                 argList = args;
 
                 if (argList != null && argList.Length > 0 && argList.First().Contains("1"))
@@ -60,13 +60,13 @@ namespace AzureDatalakeStorereader
                 {
                     Console.WriteLine("calling getdatalakedata");
                     GetDatalakedata(client);
-                  
+
                 }
             }
             catch (Exception ex)
             {
                 Console.WriteLine("Unable to read any input from command line. Executing statements after that now:" + ex.Message);
-               
+
             }
             finally
             {
@@ -79,14 +79,14 @@ namespace AzureDatalakeStorereader
         {
             DateTime lastupdatedbf = DateTime.Now.AddHours(-12);
             DateTime lastupdatedaf = DateTime.Now.AddHours(12);
-            
-            RunFilterParameters runFilter = new RunFilterParameters(lastupdatedaf,lastupdatedaf);
+
+            RunFilterParameters runFilter = new RunFilterParameters(lastupdatedaf, lastupdatedaf);
             var client = new DataFactoryManagementClient(cred) { SubscriptionId = ConfigurationManager.AppSettings["subscriptionId"] };
             CreateRunResponse runResponse = null;
             Console.WriteLine("Pipeline run ID: " + runResponse.RunId);
             var activityRun = client.ActivityRuns.QueryByPipelineRun
             (ConfigurationManager.AppSettings["resourceGroupName"], "CGS-Data-Factory1", runResponse.RunId, runFilter);
-            
+
             //var context = new AuthenticationContext(ConfigurationManager.AppSettings["adlsName"] + ".azuredatalakestore.net"  +ConfigurationManager.AppSettings["ActiveDirectoryTenantId"]);
             //ClientCredential cc = new ClientCredential(ConfigurationManager.AppSettings["ApplicationId"], ConfigurationManager.AppSettings["Password"]);
             //AuthenticationResult result = context.AcquireTokenAsync("https://management.azure.com/", cc).Result;
@@ -102,36 +102,36 @@ namespace AzureDatalakeStorereader
         public static void GetDatalakedata(AdlsClient client)
         {
             Logging.WriteToLog(LoggerEnum.INFO, "Get Datalakedata Entry: ", Constants.LogFileInputPrefix);
-           
+
             try
             {
-                
+
                 JObject jOpAllSourcesData = (JObject.Parse(DataSourceDetails.ExecuteDataSourceDetails()));
-                
+
                 DataSourceDetails.LoadDataSourceObjects(jOpAllSourcesData);
 
                 Console.WriteLine("Number of data sources: " + DataSourceDetails.Sources.Count);
-                
+
                 foreach (JObject JSourceData in DataSourceDetails.Sources)
                 {
                     bool isupdated = false;
                     JObject joutputmain = null;
                     JObject jsonOpattr = null;
-                    
+
                     string filename = string.Empty;
                     try
                     {
 
                         IEnumerable<DirectoryEntry> v = null;
-                       
+
                         LoadDataSourceDataFromJson(JSourceData);
-                       
-                        
+
+
                         filename = Constants.LogFileOutputPrefix + DataSource.DataSourceName + "_" + DataSource.DataSourceID;
                         string sqlcount = string.Empty;
 
-                         jsonOpattr = new JObject();
-                         joutputmain = new JObject();
+                        jsonOpattr = new JObject();
+                        joutputmain = new JObject();
 
                         Logging.WriteToLog(LoggerEnum.INFO, "sourcename  : " + DataSource.DataSourceName, filename);
                         Logging.WriteToLog(LoggerEnum.INFO, "sourceid  : " + DataSource.DataSourceID, filename);
@@ -167,6 +167,7 @@ namespace AzureDatalakeStorereader
 
                                 if (v != null)
                                 {
+
                                     var v1 = (from cust in v
                                                   //where cust.LastModifiedTime >= DataSource.DSLastIteratedDate
                                               orderby cust.LastModifiedTime descending
@@ -226,7 +227,7 @@ namespace AzureDatalakeStorereader
 
 
                             {
-                               
+
                                 Logging.WriteToLog(LoggerEnum.INFO, "Exception occured in finding the path: " + path, filename);
                             }
                             catch (IndexOutOfRangeException indexEx)
@@ -235,7 +236,7 @@ namespace AzureDatalakeStorereader
                             }
                         }
                     }
-                    catch(Exception)
+                    catch (Exception)
                     {
 
                     }
@@ -247,15 +248,15 @@ namespace AzureDatalakeStorereader
                             UpdateStatusInMasterDB(joutputmain.ToString(), filename);
                         }
                         joutputmain = null;
-                            jsonOpattr = null;
+                        jsonOpattr = null;
                     }
                 }
 
                 Console.WriteLine("Total counts updated:" + IterationsCount);
 
                 Console.WriteLine("DATASOURCE ITERATIONS COMPLETED...");
-                
-             
+
+
             }
             catch (Exception ex1)
             {
@@ -277,7 +278,7 @@ namespace AzureDatalakeStorereader
                 DataSource.FolderPath = (string)jSourceData[Constants.JsonDSDetailsFolderPath];
                 DataSource.DSCreatedDate = (DateTime)jSourceData[Constants.JsonDSDetailsDSCreatedDate];
 
-                if(jSourceData[Constants.JsonDSDetailsDSLastIteratedDate] != null)
+                if (jSourceData[Constants.JsonDSDetailsDSLastIteratedDate] != null)
                 {
                     DataSource.DSLastIteratedDate = (DateTime)jSourceData[Constants.JsonDSDetailsDSLastIteratedDate];
                 }
@@ -291,7 +292,7 @@ namespace AzureDatalakeStorereader
                 {
                     DataSource.ADLAProvModifiedDate = (DateTime)jSourceData[Constants.JsonDSDetailsADLAModifiedDate];
                 }
-                catch(Exception ex)
+                catch (Exception ex)
                 {
                     DataSource.ADLAProvModifiedDate = DateTime.Now.AddYears(18);
                 }
@@ -301,7 +302,7 @@ namespace AzureDatalakeStorereader
                 DataSource.EngineInstanceId = (string)jSourceData[Constants.JsonDSDetailsEngineInstanceID];
                 DataSource.ADLAProvId = (string)jSourceData[Constants.JsonDSDetailsADLAProvID];
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 Console.WriteLine("Exception occured in loading the data source attributes:" + ex);
             }
@@ -312,26 +313,29 @@ namespace AzureDatalakeStorereader
             string[] paths = new string[2];
             try
             {
-                DataSource.ContainerPath = GetdataSourceType(DataSource.DataSourceName);
+                if (DataSource.ContainerPath == null)
+                {
+                    DataSource.ContainerPath = GetdataSourceType(DataSource.DataSourceName);
+                }
 
                 paths[0] = "/" + ConfigurationManager.AppSettings["folderPath"] + "/DL-" + DataSource.ContainerPath + "/" + DataSource.DataSourceName + "/" + DataSource.DataSourceName + "_" + DataSource.ADLAType;
                 paths[1] = "/" + ConfigurationManager.AppSettings["folderPath"] + "/DL-" + DataSource.ContainerPath + "/" + DataSource.DataSourceName + "/" + DataSource.Frequency + DataSource.FrequencyUOM + "_" + DataSource.ADLAType + "_" + DataSource.DataSourceName;
-               // paths[2] = "/" + ConfigurationManager.AppSettings["folderPath"] + "/DL-" + DataSource.ContainerPath + "/Fact_" + DataSource.DataSourceName + "/" + DataSource.Frequency + DataSource.FrequencyUOM + "_" + DataSource.ADLAType + "_" + DataSource.DataSourceName;
+                // paths[2] = "/" + ConfigurationManager.AppSettings["folderPath"] + "/DL-" + DataSource.ContainerPath + "/Fact_" + DataSource.DataSourceName + "/" + DataSource.Frequency + DataSource.FrequencyUOM + "_" + DataSource.ADLAType + "_" + DataSource.DataSourceName;
 
                 //Console.WriteLine(paths[0]);
-               // Console.WriteLine(paths[1]);
+                // Console.WriteLine(paths[1]);
                 //Console.WriteLine(paths[2]);
-                
+
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 Logging.WriteToLog(LoggerEnum.ERROR, String.Format("Exception occured in building the paths: {0} , {1}", DataSource.DataSourceName, DataSource.ContainerPath), "inputfile");
             }
             return paths;
         }
-       
 
-        public static void UpdateStatusInMasterDB(string input,string filename)
+
+        public static void UpdateStatusInMasterDB(string input, string filename)
         {
             try
             {
@@ -374,7 +378,7 @@ namespace AzureDatalakeStorereader
                 Console.WriteLine("Number of data sources: " + DataSourceDetails.Sources.Count);
 
 
-                foreach (JObject JSourceData in DataSourceDetails.Sources.GroupBy( i => i.ElementAt(1),(key,group) => group.First()).ToArray())
+                foreach (JObject JSourceData in DataSourceDetails.Sources.GroupBy(i => i.ElementAt(1), (key, group) => group.First()).ToArray())
                 {
                     LoadDataSourceDataFromJson(JSourceData);
 
@@ -405,7 +409,7 @@ namespace AzureDatalakeStorereader
                     jsonOpattr["adlaprovid"] = DataSource.ADLAProvId;
                     joutputmain["INPUT"] = jsonOpattr;
 
-                    UpdateStatusInMasterDB(joutputmain.ToString(), filename);                    
+                    UpdateStatusInMasterDB(joutputmain.ToString(), filename);
                 }
 
                 Console.WriteLine("DATASOURCE ITERATIONS COMPLETED");
@@ -423,17 +427,17 @@ namespace AzureDatalakeStorereader
 
         }
 
-        public static string GetDatamartCount(string tableName, DateTime date,string filename)
+        public static string GetDatamartCount(string tableName, DateTime date, string filename)
         {
-            
+
             Logging.WriteToLog(LoggerEnum.INFO, "GetDatamartCount Start time : " + DateTime.Now, filename);
 
             string result = string.Empty;
-            
+
             string query = "select count(1) from Fact_" + tableName + "metricdetails where recorddateutc>='" + date.ToString("yyyy-MM-dd") + "' and recorddateutc<='" + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + "'";
 
             Logging.WriteToLog(LoggerEnum.INFO, query, filename);
-            
+
             try
             {
                 Console.WriteLine("SQL DATAMART CONN is CONNECTED");
@@ -450,9 +454,10 @@ namespace AzureDatalakeStorereader
 
                 result = obj2.ToString();
 
-                
+
                 Logging.WriteToLog(LoggerEnum.INFO, result, filename);
-            } catch (Exception ex)
+            }
+            catch (Exception ex)
             {
                 result = "-1";
                 Logging.WriteToLog(LoggerEnum.INFO, result, filename);
@@ -461,7 +466,7 @@ namespace AzureDatalakeStorereader
 
                 Logging.WriteToLog(LoggerEnum.ERROR, ex.Message, filename);
             }
-            
+
             Logging.WriteToLog(LoggerEnum.INFO, "GetDatamartCount End time : " + DateTime.Now, filename);
             return result;
         }
@@ -513,9 +518,14 @@ namespace AzureDatalakeStorereader
             {
                 dsType = "CoinsEXCEL";
             }
-            else if (tableName.ToLower().Contains("coins"))
+
+            else if (tableName.ToLower().Contains("coins") && (tableName.ToLower().Contains("sql")))
             {
                 dsType = "CoinsSQL";
+            }
+            else if (tableName.ToLower().Contains("inv") && (tableName.ToLower().Contains("coins")))
+            {
+                dsType = "CoinsEXCEL";
             }
             else if (tableName.ToLower().Contains("pocbdl") || tableName.ToLower().Contains("bdl") ||
                 tableName.ToLower().Contains("cmt") || tableName.ToLower().Contains("bdl-cmt"))
