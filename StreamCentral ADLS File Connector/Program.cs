@@ -18,7 +18,7 @@ using Microsoft.Rest.Azure.Authentication;
 
 namespace AzureDatalakeStorereader
 {
-    class Program
+    public static class Program
     {
         private static string[] argList;
         public static AdlsClient client;
@@ -52,7 +52,9 @@ namespace AzureDatalakeStorereader
                 {
                     for (int i = 0; i <= 10000; i++)
                     {
-                        ADLSGen1FileOperations.AppendToFile("/Samples/Output/Ex", i);
+                        //ADLSGen1FileOperations.AppendToFile("/Samples/Output/Ex", i);
+                        ADLSGen1FileOperations.CreateFile("/Samples/Output/Ex");
+                      
                     }
                 }
                 else

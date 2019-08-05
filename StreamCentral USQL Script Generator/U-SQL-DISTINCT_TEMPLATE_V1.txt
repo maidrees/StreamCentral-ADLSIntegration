@@ -1,0 +1,14 @@
+﻿//Define schema of file, must map all columns
+
+DECLARE @sourcepath string = @"#vitsourcepath#";
+DECLARE @destfilename string = @"#vitdestfilename#"; 
+
+@searchlog = EXTRACT #vitinparams# FROM @sourcepath USING Extractors.Text(delimiter: '~', quoting: false,silent:true);
+
+@outputrecords = SELECT #vitoutparams#,ROW_NUMBER() OVER (PARTITION BY #vitprimid# ORDER BY #vitorderbydate# DESC) AS pk FROM @searchlog;
+
+@outputrecords = SELECT #vitoutparams# FROM @outputrecords WHERE pk == 1;
+
+@outputrecords = SELECT #vitoutparams# FROM @outputrecords;
+
+OUTPUT @outputrecords    TO @destfilename    USING Outputters.Text(delimiter: '~', quoting: false);

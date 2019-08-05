@@ -5,6 +5,8 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Reflection;
 using System.Runtime;
+using AzureDatalakeStorereader;
+
 
 namespace StreamCentral.ADLSIntegration
 {    
@@ -35,6 +37,8 @@ namespace StreamCentral.ADLSIntegration
                         SetCommandLinePropertyValues();
                     }
                     ////Call Method: Create Data Sets, Pipelines for all structures qualified for criteria.
+                    ///
+                    
 
                 }
                 catch(Exception ex)
@@ -62,6 +66,7 @@ namespace StreamCentral.ADLSIntegration
                     ADFV1Operations.DeployADFDataSetsAndPipelines(InitialParams.OnPremiseADLAType);
                 }
 
+                
                 if (InitialParams.DeployCriteria.Equals("delete"))
                 {
 

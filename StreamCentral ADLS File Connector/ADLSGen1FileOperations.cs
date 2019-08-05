@@ -101,6 +101,7 @@ namespace AzureDatalakeStorereader
 
         public static void AppendToFile(string fileName,int i)
         {
+
             // Append to existing file
             using (var stream = client.GetAppendStream(fileName))
             {

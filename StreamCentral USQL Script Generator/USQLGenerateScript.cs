@@ -24,7 +24,7 @@ namespace Streamcentral.USQLScriptGenertor
             static readonly string frequencyUOM = "Day";
             static readonly string dsRecordDateUTc = "RECORDDATEUTC";
 
-            static void GenerateScript()
+            public static void GenerateScript()
             {
                 string inputParams, outParams = String.Empty;
 
